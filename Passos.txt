@@ -1,0 +1,24 @@
+-- Configuração do GIT
+git config --global user.name lucasSouza225
+git config --global user.email lucas2469y@gmail.com
+
+-- Criar o projeto MVC
+dotnet new webapi -o BlackCoffe.API --use-controllers
+
+
+--Execução do projeto
+
+API
+cd BlackCoffe.API 
+dotnet watch run
+
+
+BlackCoffe.UI
+dotnet watch run
+
+Por para funcionar o MySQL
+
+--Referencias
+https://www.ristrettinho.com.br/
+https://cafeararasol.com.br/
+https://www.cafestore.com.br/
