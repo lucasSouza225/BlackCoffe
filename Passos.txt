@@ -13,10 +13,13 @@ cd BlackCoffe.API
 dotnet watch run
 
 
-BlackCoffe.UI
+cd BlackCoffe.UI
 dotnet watch run
 
 Por para funcionar o MySQL
+
+
+http://localhost:5214
 
 --Referencias
 https://www.ristrettinho.com.br/
