@@ -6,11 +6,11 @@
   dotnet sln add <NOME DO PROJETO>.UI\<NOME DO PROJETO>.UI.csproj
 
 
-3. Altera no arquivo <NOME DO PROJETO>.API.csproj a linha 5:
+3. Altera no arquivo <NOME DO PROJETO>.UI.csproj a linha 5:
     <Nullable>disable</Nullable>
 
 
-4. Criar na pasta a classe ApiSettings
+4. Criar na pasta Models a classe ApiSettings
 namespace <NOME DO PROJETO>.UI.Models;
 
 public class ApiSettings
@@ -765,6 +765,17 @@ main {
   min-height: calc(100vh - 160px);
   flex: 1;
   margin-bottom: 20px;
+}
+
+
+22.1 Crie um arquivo auth.css:
+main {
+    justify-content: center;
+    align-items: center;
+}
+
+.formContainer {
+    width: 400px;
 }
 
 

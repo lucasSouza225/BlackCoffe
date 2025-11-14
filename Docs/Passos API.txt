@@ -140,7 +140,7 @@ public class AppDbContext : IdentityDbContext<Usuario>
         builder.Entity<Produto>().HasData(produtos);
     }
 
-}j
+}
 
 
 12. Alterar o arquivo appsettings.json (Lembre-se de mudar: <NOME DO BANCO> e <NOME DO PROJETO>):
@@ -626,6 +626,9 @@ public class JwtService : IJwtService
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
 }
+
+
+EXTRA: COPIAR DA REDE A PASTA HELPERS PARA SEU PROJETO.API
 
 
 27. Criar na pasta Implementations a classe AuthService.cs:

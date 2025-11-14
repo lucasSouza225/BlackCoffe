@@ -31,7 +31,10 @@ body {
 }
 
 main {
-  min-height: calc(100vh - 160px);
-  flex: 1;
-  margin-bottom: 20px;
+  justify-content: center;
+  align-items: center;
+}
+
+.formContainer {
+  width: 400px;
 }

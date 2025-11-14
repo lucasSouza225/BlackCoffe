@@ -21,7 +21,15 @@ Por para funcionar o MySQL
 
 http://localhost:5214
 
+
+
 --Referencias
 https://www.ristrettinho.com.br/
 https://cafeararasol.com.br/
 https://www.cafestore.com.br/
+
+
+
+-- Login
+E-mail = lucas2469y@gmail.com
+Senha = 123456
