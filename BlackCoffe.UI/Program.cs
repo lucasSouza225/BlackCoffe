@@ -1,4 +1,4 @@
-using BlackCoffe.UI.Middleware;
+using BlackCoffe.UI;
 using BlackCoffe.UI.Models;
 using BlackCoffe.UI.Services.Implementations;
 using BlackCoffe.UI.Services.Interfaces;
@@ -48,8 +48,12 @@ builder.Services.AddAuthorization(options =>
 
 builder.Services.AddHttpContextAccessor();
 
+// AutoMapper
+builder.Services.AddAutoMapper(typeof(MappingConfig));
+
 // Serviços de API
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<ICategoriaService, CategoriaService>();
 
 var app = builder.Build();
 

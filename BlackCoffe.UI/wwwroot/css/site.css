@@ -2,6 +2,12 @@ html {
   font-size: 14px;
 }
 
+main {
+  min-height: calc(100vh - 160px);
+  flex: 1;
+  margin-bottom: 20px;
+}
+
 a {
   text-decoration: none;
 }

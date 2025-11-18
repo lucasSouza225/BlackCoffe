@@ -1,0 +1,5228 @@
+1. Executar diretamente na pasta do repositório o comando:
+    dotnet new mvc -o BlackCoffe.UI
+
+
+
+2. Executar diretamente na pasta do repositório, se existir um arquivo BlackCoffe.sln
+  dotnet sln add BlackCoffe.UI\BlackCoffe.UI.csproj
+
+
+
+3. Altera no arquivo BlackCoffe.API.csproj a linha 5:
+    <Nullable>disable</Nullable>
+
+
+
+4. Criar na pasta Models a classe ApiSettings
+namespace BlackCoffe.UI.Models;
+
+public class ApiSettings
+{
+    public string BaseUrl { get; set; } = string.Empty;
+    public int TimeoutSeconds { get; set; } = 30;
+}
+
+
+
+5. Abra o arquivo launchSettings.json do projeto BlackCoffe.API e copie o caminho de rota da chave http -> applicationUrl.
+NÃO ALTERAR O ARQUIVO launchSettings
+
+
+
+6. Abra o arquivo appsettings.json do projeto BlackCoffe.UI e adicione o código abaixo alterando a rota para a copiada no passo 4:
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "AllowedHosts": "*",
+  "ApiSettings": {
+    "BaseUrl": "http://localhost:5058/api/",
+    "TimeoutSeconds": 30
+  }
+}
+
+    
+
+7. Registre os serviços no Program.cs:
+using BlackCoffe.UI.Models;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// Configurações
+builder.Services.Configure<ApiSettings>(
+    builder.Configuration.GetSection("ApiSettings"));
+
+// Add services to the container.
+builder.Services.AddControllersWithViews();
+builder.Services.AddHttpClient();
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromMinutes(30);
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+});
+
+// Configuração da Autenticação
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = "SessionAuth";
+    options.DefaultChallengeScheme = "SessionAuth";
+    options.DefaultSignInScheme = "SessionAuth";
+})
+.AddCookie("SessionAuth", options =>
+{
+    options.LoginPath = "/Auth/Login";
+    options.AccessDeniedPath = "/Auth/AcessoNegado";
+    options.ExpireTimeSpan = TimeSpan.FromMinutes(30);
+});
+
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("Administrador", policy => 
+        policy.RequireRole("Administrador"));
+    
+    options.AddPolicy("Gerente", policy => 
+        policy.RequireRole("Gerente"));
+    
+    options.AddPolicy("Cliente", policy => 
+        policy.RequireRole("Cliente"));
+});
+
+builder.Services.AddHttpContextAccessor();
+
+// Serviços de API
+
+
+var app = builder.Build();
+
+// Configure the HTTP request pipeline.
+if (!app.Environment.IsDevelopment())
+{
+    app.UseExceptionHandler("/Home/Error");
+    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
+    app.UseHsts();
+}
+
+app.UseHttpsRedirection();
+app.UseRouting();
+app.UseSession();
+
+app.UseAuthentication();
+app.UseAuthorization();
+
+app.MapStaticAssets();
+
+app.MapControllerRoute(
+    name: "default",
+    pattern: "{controller=Home}/{action=Index}/{id?}")
+    .WithStaticAssets();
+
+app.Run();
+
+
+
+8. Criar uma pasta ViewModels dentro da pasta do projeto BlackCoffe.UI
+
+
+
+9. Criar a classe LoginVM dentro da pasta ViewModels:
+using System.ComponentModel.DataAnnotations;
+
+namespace BlackCoffe.UI.ViewModels;
+
+public class LoginVM
+{
+    [Display(Name = "E-mail")]
+    [Required(ErrorMessage = "O E-mail é Obrigatório")]
+    [EmailAddress(ErrorMessage = "E-mail válido")]
+    public string Email { get; set; }
+
+    [Display(Name = "Senha")]
+    [DataType(DataType.Password)]
+    [Required(ErrorMessage = "A Senha é Obrigatória")]
+    public string Senha { get; set; }
+}
+
+
+
+10. Criar a classe RegistroVM dentro da pasta ViewModels:
+using System.ComponentModel.DataAnnotations;
+
+namespace BlackCoffe.UI.ViewModels;
+
+public class RegistroVM
+{
+    [Display(Name = "E-mail")]
+    [Required(ErrorMessage = "O E-mail é Obrigatório")]
+    [EmailAddress(ErrorMessage = "Informe um e-mail válido")]
+    public string Email { get; set; }
+
+    [Display(Name = "Senha")]
+    [DataType(DataType.Password)]
+    [Required(ErrorMessage = "A Senha é Obrigatória")]
+    public string Senha { get; set; }
+
+    [StringLength(50)]
+    [Display(Name = "Nome Completo")]
+    [Required(ErrorMessage = "O Nome Completo é Obrigatório")]
+    public string Nome { get; set; }
+
+    [DataType(DataType.Date)]
+    [Display(Name = "Data de Nascimento")]
+    public DateTime? DataNascimento { get; set; }
+
+    public IFormFile Foto { get; set; }
+}
+
+
+
+11. Crie uma pasta DTOs dentro da pasta do projeto BlackCoffe.UI
+
+
+
+12. Crie na pasta DTOs a classe UserDto:
+using System.Text.Json.Serialization;
+
+namespace BlackCoffe.UI.DTOs;
+
+public class UserDto
+{
+    [JsonPropertyName("id")]
+    public string Id { get; set; } = string.Empty;
+
+    [JsonPropertyName("email")]
+    public string Email { get; set; } = string.Empty;
+
+    [JsonPropertyName("nome")]
+    public string Nome { get; set; } = string.Empty;
+
+    [JsonPropertyName("dataNascimento")]
+    public DateTime? DataNascimento { get; set; }
+
+    [JsonPropertyName("foto")]
+    public string Foto { get; set; } = string.Empty;
+
+    [JsonPropertyName("perfil")]
+    public string Perfil { get; set; } = string.Empty;
+}
+
+
+
+13. Crie na pasta DTOs a classe AuthResponseDto:
+using System.Text.Json.Serialization;
+
+namespace BlackCoffe.UI.DTOs;
+
+public class AuthResponseDto
+{
+    [JsonPropertyName("token")]
+    public string Token { get; set; } = string.Empty;
+
+    [JsonPropertyName("expiration")]
+    public DateTime Expiration { get; set; }
+
+    [JsonPropertyName("user")]
+    public UserDto User { get; set; } = null!;
+}
+
+
+
+14. Crie uma pasta Services dentro da pasta do projeto BlackCoffe.UI, dentro desta nova pasta criar outras duas pastas:
+  - Interfaces
+  - Implementations
+
+
+
+15. Crie na pasta Services\Implementations a classe BaseApiService:
+using System.Text;
+using System.Text.Json;
+using BlackCoffe.UI.Models;
+using Microsoft.Extensions.Options;
+
+namespace BlackCoffe.UI.Services.Implementations;
+
+public abstract class BaseApiService
+{
+    protected readonly HttpClient _httpClient;
+    protected readonly ApiSettings _apiSettings;
+    protected readonly IHttpContextAccessor _httpContextAccessor;
+
+    protected BaseApiService(
+        HttpClient httpClient,
+        IOptions<ApiSettings> apiSettings,
+        IHttpContextAccessor httpContextAccessor)
+    {
+        _httpClient = httpClient;
+        _apiSettings = apiSettings.Value;
+        _httpContextAccessor = httpContextAccessor;
+
+        _httpClient.BaseAddress = new Uri(_apiSettings.BaseUrl);
+        _httpClient.Timeout = TimeSpan.FromSeconds(_apiSettings.TimeoutSeconds);
+    }
+
+    protected async Task<T> GetAsync<T>(string endpoint)
+    {
+        AddAuthHeader();
+        var response = await _httpClient.GetAsync(endpoint);
+        return await HandleResponse<T>(response);
+    }
+
+    protected async Task<T> PostAsync<T>(string endpoint, object data)
+    {
+        AddAuthHeader();
+        var content = CreateJsonContent(data);
+        var response = await _httpClient.PostAsync(endpoint, content);
+        return await HandleResponse<T>(response);
+    }
+
+    protected async Task<T> PutAsync<T>(string endpoint, object data)
+    {
+        AddAuthHeader();
+        var content = CreateJsonContent(data);
+        var response = await _httpClient.PutAsync(endpoint, content);
+        return await HandleResponse<T>(response);
+    }
+
+    protected async Task<bool> DeleteAsync(string endpoint)
+    {
+        AddAuthHeader();
+        var response = await _httpClient.DeleteAsync(endpoint);
+        return response.IsSuccessStatusCode;
+    }
+
+    private void AddAuthHeader()
+    {
+        var token = _httpContextAccessor.HttpContext?.Session.GetString("JWTToken");
+        if (!string.IsNullOrEmpty(token))
+        {
+            _httpClient.DefaultRequestHeaders.Authorization =
+                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+        }
+    }
+
+    private StringContent CreateJsonContent(object data)
+    {
+        var json = JsonSerializer.Serialize(data);
+        return new StringContent(json, Encoding.UTF8, "application/json");
+    }
+
+    private async Task<T> HandleResponse<T>(HttpResponseMessage response)
+    {
+        var content = await response.Content.ReadAsStringAsync();
+
+        if (response.IsSuccessStatusCode)
+        {
+            return JsonSerializer.Deserialize<T>(content,
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        }
+
+        // Tenta desserializar a resposta de erro da API
+        try
+        {
+            var errorResponse = JsonSerializer.Deserialize<ErrorResponse>(content,
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+            // Se conseguiu desserializar, usa a mensagem do erro
+            var errorMessage = errorResponse?.Message ?? $"Erro: {response.StatusCode}";
+
+            // Para erros 401, faz logout automático
+            if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+            {
+                _httpContextAccessor.HttpContext?.Session.Clear();
+            }
+
+            throw new HttpRequestException(errorMessage);
+        }
+        catch (JsonException)
+        {
+            // Se não conseguir desserializar, usa a mensagem padrão
+            throw new HttpRequestException($"Erro {response.StatusCode}: {content}");
+        }
+    }
+}
+
+public class ErrorResponse
+{
+    public int StatusCode { get; set; }
+    public string Message { get; set; } = string.Empty;
+    public string Details { get; set; } = string.Empty;
+}
+
+
+
+16. Criar dentro da pasta Services\Interfaces a interface IAuthService:
+using BlackCoffe.UI.ViewModels;
+
+namespace BlackCoffe.UI.Services.Interfaces;
+
+public interface IAuthService
+{
+    Task<(bool Success, string Message)> LoginAsync(LoginVM loginVM);
+    Task<(bool Success, string Message)> RegisterAsync(RegistroVM registroDto);
+    void Logout();
+    bool IsAuthenticated();
+    string GetUserToken();
+    string GetUserName();
+    string GetUserEmail();
+    string GetUserFoto();
+    string GetUserPerfil();
+}
+
+
+
+17. Criar dentro da pasta Services\Implementations a classe AuthService:
+using System.Text;
+using System.Text.Json;
+using BlackCoffe.UI.DTOs;
+using BlackCoffe.UI.Models;
+using BlackCoffe.UI.Services.Interfaces;
+using BlackCoffe.UI.ViewModels;
+using Microsoft.Extensions.Options;
+
+namespace BlackCoffe.UI.Services.Implementations;
+
+public class AuthService : BaseApiService, IAuthService
+{
+    public AuthService(
+        HttpClient httpClient,
+        IOptions<ApiSettings> apiSettings,
+        IHttpContextAccessor httpContextAccessor)
+        : base(httpClient, apiSettings, httpContextAccessor)
+    {
+    }
+
+    public async Task<(bool Success, string Message)> LoginAsync(LoginVM loginVM)
+    {
+        try
+        {
+            // Remove o header de auth se existir (para login)
+            _httpClient.DefaultRequestHeaders.Authorization = null;
+
+            var response = await PostAsync<AuthResponseDto>("auth/login", loginVM);
+
+            if (response != null && !string.IsNullOrEmpty(response.Token))
+            {
+                // Salva o token na sessão
+                _httpContextAccessor.HttpContext?.Session.SetString("JWTToken", response.Token);
+                _httpContextAccessor.HttpContext?.Session.SetString("UserEmail", response.User.Email);
+                _httpContextAccessor.HttpContext?.Session.SetString("UserName", response.User.Nome);
+                _httpContextAccessor.HttpContext?.Session.SetString("UserId", response.User.Id);
+                if (response.User.DataNascimento.HasValue)
+                {
+                    _httpContextAccessor.HttpContext?.Session.SetString("UserDataNascimento",
+                        response.User.DataNascimento.Value.ToString("yyyy-MM-dd"));
+                }
+                _httpContextAccessor.HttpContext?.Session.SetString("UserFoto", response.User.Foto ?? "");
+                _httpContextAccessor.HttpContext?.Session.SetString("UserPerfil", response.User.Perfil);
+                return (true, "Login realizado com sucesso!");
+            }
+            return (false, "Credenciais inválidas.");
+        }
+        catch (HttpRequestException ex)
+        {
+            Console.WriteLine($"Erro no login: {ex.Message}");
+            return (false, ex.Message);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Erro inesperado no login: {ex.Message}");
+            return (false, "Erro interno. Tente novamente.");
+        }
+    }
+
+    public async Task<(bool Success, string Message)> RegisterAsync(RegistroVM registroVM)
+    {
+        try
+        {
+            _httpClient.DefaultRequestHeaders.Authorization = null;
+
+            var formData = new MultipartFormDataContent();
+
+            // Campos obrigatórios
+            formData.Add(new StringContent(registroVM.Nome ?? ""), "Nome");
+            formData.Add(new StringContent(registroVM.Email ?? ""), "Email");
+            formData.Add(new StringContent(registroVM.Senha ?? ""), "Senha");
+
+            // Campo opcional
+            if (registroVM.DataNascimento.HasValue)
+            {
+                formData.Add(new StringContent(registroVM.DataNascimento.Value.ToString("yyyy-MM-dd")), "DataNascimento");
+            }
+
+            // Foto (opcional) - se tiver arquivo, envia, senão não
+            if (registroVM.Foto != null && registroVM.Foto.Length > 0)
+            {
+                var fileContent = new StreamContent(registroVM.Foto.OpenReadStream());
+                fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(registroVM.Foto.ContentType);
+                formData.Add(fileContent, "Foto", registroVM.Foto.FileName);
+            }
+
+            var response = await _httpClient.PostAsync("auth/register", formData);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var content = await response.Content.ReadAsStringAsync();
+                var authResponse = JsonSerializer.Deserialize<AuthResponseDto>(content,
+                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+                if (authResponse != null && !string.IsNullOrEmpty(authResponse.Token))
+                {
+                    // Salva o token e dados do usuário na sessão
+                    _httpContextAccessor.HttpContext?.Session.SetString("JWTToken", authResponse.Token);
+                    _httpContextAccessor.HttpContext?.Session.SetString("UserEmail", authResponse.User.Email);
+                    _httpContextAccessor.HttpContext?.Session.SetString("UserName", authResponse.User.Nome);
+                    _httpContextAccessor.HttpContext?.Session.SetString("UserId", authResponse.User.Id);
+
+                    if (authResponse.User.DataNascimento.HasValue)
+                    {
+                        _httpContextAccessor.HttpContext?.Session.SetString("UserDataNascimento",
+                            authResponse.User.DataNascimento.Value.ToString("yyyy-MM-dd"));
+                    }
+                    _httpContextAccessor.HttpContext?.Session.SetString("UserFoto", authResponse.User.Foto ?? "");
+                    _httpContextAccessor.HttpContext?.Session.SetString("UserPerfil", authResponse.User.Perfil);
+
+                    return (true, "Registro realizado com sucesso!");
+                }
+            }
+
+            // Tratamento de erro
+            var errorContent = await response.Content.ReadAsStringAsync();
+            string errorMessage;
+
+            try
+            {
+                var errorResponse = JsonSerializer.Deserialize<ErrorResponse>(errorContent,
+                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                errorMessage = errorResponse?.Message ?? "Falha no registro.";
+            }
+            catch
+            {
+                errorMessage = $"Erro {response.StatusCode}: {errorContent}";
+            }
+
+            return (false, errorMessage);
+        }
+        catch (HttpRequestException ex)
+        {
+            Console.WriteLine($"Erro no registro: {ex.Message}");
+            return (false, ex.Message);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Erro inesperado no registro: {ex.Message}");
+            return (false, "Erro interno. Tente novamente.");
+        }
+    }
+
+    public void Logout()
+    {
+        _httpContextAccessor.HttpContext?.Session.Clear();
+    }
+
+    public bool IsAuthenticated()
+    {
+        return !string.IsNullOrEmpty(GetUserToken());
+    }
+
+    public string GetUserToken()
+    {
+        return _httpContextAccessor.HttpContext?.Session.GetString("JWTToken") ?? string.Empty;
+    }
+
+    public string GetUserName()
+    {
+        return _httpContextAccessor.HttpContext?.Session.GetString("UserName") ?? string.Empty;
+    }
+
+    public string GetUserEmail()
+    {
+        return _httpContextAccessor.HttpContext?.Session.GetString("UserEmail") ?? string.Empty;
+    }
+
+    public string GetUserFoto()
+    {
+        return _httpContextAccessor.HttpContext?.Session.GetString("UserFoto") ?? string.Empty;
+    }
+
+    public string GetUserPerfil()
+    {
+        return _httpContextAccessor.HttpContext?.Session.GetString("UserPerfil") ?? string.Empty;
+    }
+}
+
+
+
+18. Crei na pasta Services\Implementations a classe UserContextService:
+using System.Security.Claims;
+using BlackCoffe.UI.Services.Interfaces;
+
+namespace BlackCoffe.UI.Services.Implementations;
+
+public class UserContextService
+{
+    private readonly IAuthService _authService;
+
+    public UserContextService(IAuthService authService)
+    {
+        _authService = authService;
+    }
+
+    public ClaimsPrincipal CreateClaimsPrincipal()
+    {
+        if (!_authService.IsAuthenticated())
+            return new ClaimsPrincipal(new ClaimsIdentity());
+
+        var claims = new List<Claim>
+            {
+                new(ClaimTypes.Name, _authService.GetUserName()),
+                new(ClaimTypes.Email, _authService.GetUserEmail()),
+                new("Perfil", _authService.GetUserPerfil()),
+                new(ClaimTypes.Role, _authService.GetUserPerfil())
+            };
+
+        var identity = new ClaimsIdentity(claims, "SessionAuth");
+        return new ClaimsPrincipal(identity);
+    }
+}
+
+
+
+19. Crie uma pasta Middleware na raiz do projeto BlackCoffe.UI, e dentro a classe SessionAuthMiddleware:
+using BlackCoffe.UI.Services.Implementations;
+
+namespace BlackCoffe.UI.Middleware;
+
+public class SessionAuthMiddleware
+{
+    private readonly RequestDelegate _next;
+
+    public SessionAuthMiddleware(RequestDelegate next)
+    {
+        _next = next;
+    }
+
+    public async Task InvokeAsync(HttpContext context, UserContextService userContextService)
+    {
+        // Configura o User.Identity baseado na sessão
+        context.User = userContextService.CreateClaimsPrincipal();
+        await _next(context);
+    }
+}
+
+
+
+20. Adicionando os novos serviços no Program.cs:
+using BlackCoffe.UI.Middleware;
+using BlackCoffe.UI.Models;
+using BlackCoffe.UI.Services.Implementations;
+using BlackCoffe.UI.Services.Interfaces;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// Configurações
+builder.Services.Configure<ApiSettings>(
+    builder.Configuration.GetSection("ApiSettings"));
+builder.Services.AddScoped<UserContextService>();
+
+// Add services to the container.
+builder.Services.AddControllersWithViews();
+builder.Services.AddHttpClient();
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromMinutes(30);
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+});
+
+// Configuração da Autenticação
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = "SessionAuth";
+    options.DefaultChallengeScheme = "SessionAuth";
+    options.DefaultSignInScheme = "SessionAuth";
+})
+.AddCookie("SessionAuth", options =>
+{
+    options.LoginPath = "/Auth/Login";
+    options.AccessDeniedPath = "/Auth/AcessoNegado";
+    options.ExpireTimeSpan = TimeSpan.FromMinutes(30);
+});
+
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("Administrador", policy => 
+        policy.RequireRole("Administrador"));
+    
+    options.AddPolicy("Gerente", policy => 
+        policy.RequireRole("Gerente"));
+    
+    options.AddPolicy("Cliente", policy => 
+        policy.RequireRole("Cliente"));
+});
+
+builder.Services.AddHttpContextAccessor();
+
+// Serviços de API
+builder.Services.AddScoped<IAuthService, AuthService>();
+
+var app = builder.Build();
+
+// Configure the HTTP request pipeline.
+if (!app.Environment.IsDevelopment())
+{
+    app.UseExceptionHandler("/Home/Error");
+    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
+    app.UseHsts();
+}
+
+app.UseHttpsRedirection();
+app.UseRouting();
+app.UseSession();
+
+app.Use(async (context, next) =>
+{
+    var userContextService = context.RequestServices.GetRequiredService<UserContextService>();
+    context.User = userContextService.CreateClaimsPrincipal();
+    await next();
+});
+
+app.UseAuthentication();
+app.UseAuthorization();
+
+app.MapStaticAssets();
+
+app.MapControllerRoute(
+    name: "default",
+    pattern: "{controller=Home}/{action=Index}/{id?}")
+    .WithStaticAssets();
+
+
+app.Run();
+
+
+
+21. Adicione um Controller com o nome AuthController na pastas Controllers
+using BlackCoffe.UI.Services.Interfaces;
+using BlackCoffe.UI.ViewModels;
+using Microsoft.AspNetCore.Mvc;
+
+namespace BlackCoffe.UI.Controllers;
+
+public class AuthController : Controller
+{
+    private readonly ILogger<AuthController> _logger;
+    private readonly IAuthService _authService;
+
+    public AuthController(ILogger<AuthController> logger, IAuthService authService)
+    {
+        _logger = logger;
+        _authService = authService;
+    }
+
+    public IActionResult Login()
+    {
+        if (_authService.IsAuthenticated())
+            return RedirectToAction("Index", "Home");
+        return View();
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Login(LoginVM loginVM)
+    {
+        if (!ModelState.IsValid)
+            return View(loginVM);
+
+        var (success, message) = await _authService.LoginAsync(loginVM);
+
+        if (success)
+            return RedirectToAction("Index", "Home");
+
+        ModelState.AddModelError(string.Empty, message);
+        return View(loginVM);
+    }
+
+    public IActionResult Registro()
+    {
+        if (_authService.IsAuthenticated())
+            return RedirectToAction("Index", "Home");
+        return View();
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Registro(RegistroVM registroDto)
+    {
+        if (!ModelState.IsValid)
+            return View(registroDto);
+
+        var (success, message) = await _authService.RegisterAsync(registroDto);
+
+        if (success)
+            return RedirectToAction("Index", "Home");
+
+        ModelState.AddModelError(string.Empty, message);
+        return View(registroDto);
+    }
+
+    public IActionResult Logout()
+    {
+        _authService.Logout();
+        return RedirectToAction("Index", "Home");
+    }
+}
+
+
+
+22. Altere no arquivo site.css:
+body {
+  padding-bottom: 60px;
+}
+
+main {
+  min-height: calc(100vh - 160px);
+  flex: 1;
+  margin-bottom: 20px;
+}
+
+
+
+23. Crie um arquivo auth.css:
+main {
+    justify-content: center;
+    align-items: center;
+}
+
+.formContainer {
+    width: 400px;
+}
+
+
+
+24. Criar na pasta Views\Shared\_LoginPartial.cshtml:
+@using BlackCoffe.UI.Services.Interfaces
+@inject IAuthService AuthService
+@{
+    string foto = AuthService.GetUserFoto();
+    foto = string.IsNullOrEmpty(foto) ? "http://localhost:5058/img/usuarios/no-photo.png" : foto;
+}
+
+@if (AuthService.IsAuthenticated())
+{
+    <div class="nav-item dropdown">
+        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <img src="@foto" width="40" /> 
+        </a>
+        <ul class="dropdown-menu" style="left: -100px">
+            <li><a class="dropdown-item" href="#">Meu Perfil</a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item" asp-controller="Auth" asp-action="Logout">Sair</a></li>
+        </ul>
+    </div>
+}
+else
+{
+    <div>
+        <a class="btn btn-dark text-white px-3" asp-controller="Auth" asp-action="Login">Acesso</a>
+    </div>
+}
+
+
+
+25. Altere o arquivo _Layout.cshtml:
+v
+
+
+
+26. Altere o arquivo Views\_ViewImports.cshtml:
+@using BlackCoffe.UI
+@using BlackCoffe.UI.Models
+@using BlackCoffe.UI.ViewModels
+@using BlackCoffe.UI.Services.Interfaces
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+
+
+
+27. Altere o arquivo Views\Shared\_ValidationScriptsPartial.cshtml:
+<script src="~/lib/jquery-validation/dist/jquery.validate.min.js"></script>
+<script src="~/lib/jquery-validation-unobtrusive/dist/jquery.validate.unobtrusive.min.js"></script>
+<script type="text/javascript">
+    let mensagemErro = '';
+    $(".validation-summary-errors ul li").each(function () {
+        mensagemErro += $(this).text() + '<br/>';
+    });
+    if (mensagemErro != '')
+        swal.fire(
+            'Ocorreu um Problema!',
+            mensagemErro,
+            'error'
+        );
+    
+    function showError(message) {
+        swal.fire(
+            'Ocorreu um Problema!',
+            message,
+            'error'
+        );
+    }
+</script>
+
+
+
+28. Adicione na pasta Views uma pasta Auth
+
+
+
+29. Crie dentro da pasta Views\Auth um arquivo com o nome Login.cshtml:
+@model LoginVM
+@{
+    ViewData["Title"] = "Login";
+}
+
+<div class="card formContainer p-5">
+    <h2 class="mb-4">Login</h2>
+    <form asp-action="Login" method="post">
+        <div asp-validation-summary="ModelOnly" class="text-danger" hidden></div>
+        <div class="mb-3">
+            <label asp-for="Email" class="form-label"></label>
+            <input asp-for="Email" class="form-control" />
+            <span asp-validation-for="Email" class="text-danger mt-2"></span>
+        </div>
+        <div class="mb-3">
+            <label asp-for="Senha" class="form-label"></label>
+            <input asp-for="Senha" type="password" class="form-control" />
+            <span asp-validation-for="Senha" class="text-danger mt-2"></span>
+        </div>
+        <button type="submit" class="btn btn-primary w-100 mt-1">Entrar</button>
+        
+        <p class="text-center mt-3">Novo por aqui? <a asp-action="Registro" asp-controller="Auth">Crie sua conta!</a></p>
+    </form>
+</div>
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/auth.css">
+}
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial.cshtml" />
+}
+
+
+
+30. Crie dentro da pasta Views\Auth um arquivo com o nome Registro.cshtml:
+@model RegistroVM
+@{
+    ViewData["Title"] = "Registro";
+}
+
+<div class="card formContainer p-5">
+    <h2 class="mb-4">Criar Conta</h2>
+    <form asp-action="Registro" method="post">
+        <div asp-validation-summary="ModelOnly" class="text-danger" hidden></div>
+        <div class="mb-3">
+            <label asp-for="Nome" class="form-label"></label>
+            <input asp-for="Nome" class="form-control" />
+            <span asp-validation-for="Nome" class="text-danger mt-2"></span>
+        </div>
+        <div class="mb-3">
+            <label asp-for="Email" class="form-label"></label>
+            <input asp-for="Email" class="form-control" />
+            <span asp-validation-for="Email" class="text-danger mt-2"></span>
+        </div>
+        <div class="mb-3">
+            <label asp-for="Senha" class="form-label"></label>
+            <input asp-for="Senha" type="password" class="form-control" />
+            <span asp-validation-for="Senha" class="text-danger mt-2"></span>
+        </div>
+        <button type="submit" class="btn btn-primary w-100 mt-1">Criar</button>
+        
+        <p class="text-center mt-3">Já possui uma conta? <a asp-action="Login" asp-controller="Auth">Entre aqui!</a></p>
+    </form>
+</div>
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/auth.css">
+}
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial.cshtml" />
+}
+
+
+
+31. Crie dentro da pasta Views\Auth um arquivo com o nome AcessoNegado.cshtml:
+@{
+    ViewData["Title"] = "Acesso Negado";
+}
+
+<div class="card formContainer p-5">
+    <h2 class="mb-4">Acesso Negado</h2>
+    
+</div>
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/auth.css">
+}
+
+
+
+32. Criar um Controller na pasta Controllers com o nome AdminController:
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+
+namespace BlackCoffe.UI.Controllers;
+
+[Authorize(Roles = "Administrador")]
+public class AdminController : Controller
+{
+    private readonly ILogger<AdminController> _logger;
+
+    public AdminController(ILogger<AdminController> logger)
+    {
+        _logger = logger;
+    }
+
+    public IActionResult Index()
+    {
+        return View();
+    }
+
+    [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
+    public IActionResult Error()
+    {
+        return View("Error!");
+    }
+}
+
+
+
+33. Crie na pasta wwwroot\css o arquivo admin.css:
+:root {
+    --sidebar-width: 250px;
+    --sidebar-collapsed-width: 70px;
+    --transition-speed: 0.3s;
+}
+
+/* ===== LAYOUT PRINCIPAL ===== */
+body {
+    padding-top: 65px;
+}
+
+.navbar {
+    z-index: 1030;
+}
+
+.main-content {
+    margin-left: var(--sidebar-width);
+    transition: margin-left var(--transition-speed);
+    padding: 20px;
+    min-height: calc(100vh - 56px);
+}
+
+/* ===== SIDEBAR ===== */
+.sidebar {
+    position: fixed;
+    top: 65px;
+    left: 0;
+    height: calc(100vh - 65px);
+    width: var(--sidebar-width);
+    transition: width var(--transition-speed), transform var(--transition-speed);
+    overflow-x: hidden;
+    z-index: 1020;
+    box-shadow: 3px 0 10px rgba(0, 0, 0, 0.1);
+    background-color: var(--bs-body-bg);
+    color: var(--bs-body-color);
+}
+
+.sidebar.collapsed {
+    width: var(--sidebar-collapsed-width);
+}
+
+.sidebar.collapsed + .main-content {
+    margin-left: var(--sidebar-collapsed-width);
+}
+
+/* ===== NAVEGAÇÃO SIDEBAR ===== */
+.sidebar .nav-link {
+    white-space: nowrap;
+    overflow: hidden;
+    transition: padding var(--transition-speed);
+    color: var(--bs-body-color);
+}
+
+.sidebar .nav-link i {
+    margin-left: 3px;
+}
+
+.sidebar .nav-link.active {
+    background-color: var(--bs-primary);
+    color: var(--bs-white);
+}
+
+.sidebar.collapsed .nav-link span {
+    display: none;
+}
+
+.sidebar.collapsed .nav-link i {
+    margin-right: 0;
+}
+
+.sidebar.collapsed .nav-link.active {
+    margin-right: 10px;
+    background-color: var(--bs-primary);
+    color: var(--bs-white);
+}
+
+/* ===== COMPONENTES GLOBAIS ===== */
+.card {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    border: 1px solid rgba(0, 0, 0, 0.125);
+    border-radius: 0.375rem;
+    background-color: var(--bs-card-bg, #fff);
+    color: var(--bs-card-color, #000);
+}
+
+.card-header {
+    background-color: var(--bs-card-cap-bg, #f8f9fa);
+    border-bottom: 1px solid var(--bs-card-border-color, rgba(0, 0, 0, 0.125));
+    color: var(--bs-card-cap-color, #000);
+}
+
+.card-title {
+    color: var(--bs-heading-color, inherit);
+    margin-bottom: 0;
+}
+
+.card-header .card-title,
+.card-header h1,
+.card-header h2,
+.card-header h3,
+.card-header h4,
+.card-header h5,
+.card-header h6 {
+    color: var(--bs-card-cap-color, #000);
+}
+
+.btn {
+    border-radius: 0.375rem;
+}
+
+.btn-group .btn {
+    margin: 0 2px;
+}
+
+.form-label {
+    font-weight: 500;
+    color: #495057;
+}
+
+/* ===== TABELAS ===== */
+.table th {
+    font-weight: 600;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.table-sm td {
+    padding: 0.25rem 0.5rem;
+}
+
+.table-responsive {
+    border-radius: 0.375rem;
+}
+
+/* ===== COMPONENTES ESPECÍFICOS ===== */
+.color-preview {
+    min-width: 20px;
+    height: 20px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    display: inline-block;
+}
+
+#imagePreviewContainer {
+    transition: all 0.3s ease;
+}
+
+.card.border-danger {
+    border-width: 2px;
+}
+
+#btnDelete:disabled {
+    cursor: not-allowed;
+}
+
+/* ===== ESTADOS E UTILITÁRIOS ===== */
+.text-truncate-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.img-thumbnail-sm {
+    width: 60px;
+    height: 60px;
+    object-fit: cover;
+}
+
+.loading-spinner {
+    display: inline-block;
+    width: 1rem;
+    height: 1rem;
+    border: 2px solid currentColor;
+    border-right-color: transparent;
+    border-radius: 50%;
+    animation: spinner-border 0.75s linear infinite;
+}
+
+/* ===== RESPONSIVIDADE ===== */
+@media (max-width: 768px) {
+    .sidebar {
+        transform: translateX(-100%);
+    }
+
+    .sidebar.show {
+        transform: translateX(0);
+    }
+
+    .main-content {
+        margin-left: 0 !important;
+        padding: 15px;
+    }
+    
+    .card {
+        margin-bottom: 1rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .main-content {
+        padding: 10px;
+    }
+    
+    .btn-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+    
+    .btn-group .btn {
+        margin: 0;
+    }
+}
+
+/* ===== ANIMAÇÕES ===== */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.fade-in {
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+/* ===== ESTADOS DE FORMULÁRIO ===== */
+.form-control:focus {
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    border-color: #80bdff;
+}
+
+.was-validated .form-control:valid {
+    border-color: #28a745;
+}
+
+.was-validated .form-control:invalid {
+    border-color: #dc3545;
+}
+
+/* ===== ALERTAS PERSONALIZADOS ===== */
+.alert {
+    border: none;
+    border-radius: 0.375rem;
+}
+
+.alert-success {
+    background-color: #d1edff;
+    color: #0c5460;
+}
+
+.alert-danger {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+.alert-warning {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.alert-info {
+    background-color: #d1ecf1;
+    color: #0c5460;
+}
+
+
+
+34. Crie na pasta wwwroot\js o arquivo admin.js:
+// Elementos DOM
+const sidebar = document.querySelector('.sidebar');
+const mainContent = document.querySelector('.main-content');
+const sidebarToggle = document.getElementById('sidebarToggle');
+const sidebarOverlay = document.getElementById('sidebarOverlay');
+const themeToggle = document.getElementById('themeToggle');
+
+// Função para verificar se é mobile
+function checkIsMobile() {
+    return window.innerWidth <= 768;
+}
+
+// Funções para localStorage
+function saveSidebarState(isCollapsed) {
+    localStorage.setItem('sidebarCollapsed', isCollapsed);
+}
+
+function getSidebarState() {
+    return localStorage.getItem('sidebarCollapsed') === 'true';
+}
+
+function saveThemeState(theme) {
+    localStorage.setItem('theme', theme);
+}
+
+function getThemeState() {
+    return localStorage.getItem('theme') || 'light';
+}
+
+// Aplicar tema do Bootstrap
+function applyTheme(theme) {
+    document.documentElement.setAttribute('data-bs-theme', theme);
+    saveThemeState(theme);
+    
+    // Atualizar ícone
+    if (themeToggle) {
+        const icon = themeToggle.querySelector('i');
+        if (icon) {
+            icon.className = theme === 'dark' ? 'bi bi-sun' : 'bi bi-moon';
+        }
+    }
+}
+
+// Aplicar estado salvo ao carregar a página
+function applySavedStates() {
+    // Aplicar tema
+    const savedTheme = getThemeState();
+    applyTheme(savedTheme);
+
+    // Aplicar estado da sidebar (apenas no desktop)
+    if (!checkIsMobile()) {
+        const isSidebarCollapsed = getSidebarState();
+        if (isSidebarCollapsed && sidebar) {
+            sidebar.classList.add('collapsed');
+            if (mainContent) {
+                mainContent.style.marginLeft = '70px';
+            }
+            // Atualizar ícone do botão
+            if (sidebarToggle) {
+                const icon = sidebarToggle.querySelector('i');
+                if (icon) {
+                    icon.classList.remove('bi-list');
+                    icon.classList.add('bi-arrow-right');
+                }
+            }
+        }
+    }
+}
+
+// Alternar sidebar
+if (sidebarToggle) {
+    sidebarToggle.addEventListener('click', function () {
+        const isMobile = checkIsMobile();
+        
+        if (isMobile) {
+            // No mobile, usa a classe 'show' para exibir/ocultar
+            sidebar.classList.toggle('show');
+            if (sidebarOverlay) sidebarOverlay.classList.toggle('show');
+        } else {
+            // No desktop, usa a classe 'collapsed' para expandir/recolher
+            sidebar.classList.toggle('collapsed');
+
+            // Salvar estado no localStorage
+            const isCollapsed = sidebar.classList.contains('collapsed');
+            saveSidebarState(isCollapsed);
+
+            // Atualizar margem do conteúdo principal
+            if (mainContent) {
+                if (isCollapsed) {
+                    mainContent.style.marginLeft = '70px';
+                } else {
+                    mainContent.style.marginLeft = '250px';
+                }
+            }
+
+            // Alternar ícone do botão
+            const icon = this.querySelector('i');
+            if (icon) {
+                if (isCollapsed) {
+                    icon.classList.remove('bi-list');
+                    icon.classList.add('bi-arrow-right');
+                } else {
+                    icon.classList.remove('bi-arrow-right');
+                    icon.classList.add('bi-list');
+                }
+            }
+        }
+    });
+}
+
+// Fechar sidebar ao clicar no overlay (mobile)
+if (sidebarOverlay) {
+    sidebarOverlay.addEventListener('click', function () {
+        sidebar.classList.remove('show');
+        this.classList.remove('show');
+    });
+}
+
+// Fechar sidebar ao clicar em um link (mobile)
+const sidebarLinks = document.querySelectorAll('.sidebar .nav-link');
+sidebarLinks.forEach(link => {
+    link.addEventListener('click', function () {
+        if (checkIsMobile()) {
+            sidebar.classList.remove('show');
+            if (sidebarOverlay) sidebarOverlay.classList.remove('show');
+        }
+    });
+});
+
+// Alternar tema usando sistema nativo do Bootstrap
+if (themeToggle) {
+    themeToggle.addEventListener('click', function () {
+        const currentTheme = getThemeState();
+        const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+        applyTheme(newTheme);
+    });
+}
+
+// Responsividade - atualizar comportamento ao redimensionar
+function handleResize() {
+    const isMobile = checkIsMobile();
+
+    if (isMobile) {
+        // Modo mobile - sidebar escondida por padrão
+        if (sidebar) sidebar.classList.remove('collapsed');
+        if (sidebar) sidebar.classList.remove('show');
+        if (sidebarOverlay) sidebarOverlay.classList.remove('show');
+        if (mainContent) mainContent.style.marginLeft = '0';
+
+        // Atualizar ícone do botão
+        if (sidebarToggle) {
+            const icon = sidebarToggle.querySelector('i');
+            if (icon) {
+                icon.classList.remove('bi-arrow-right');
+                icon.classList.add('bi-list');
+            }
+        }
+    } else {
+        // Modo desktop - restaurar estado salvo
+        if (sidebar) sidebar.classList.remove('show');
+        if (sidebarOverlay) sidebarOverlay.classList.remove('show');
+
+        // Aplicar estado salvo da sidebar
+        const isSidebarCollapsed = getSidebarState();
+        if (sidebar) {
+            if (isSidebarCollapsed) {
+                sidebar.classList.add('collapsed');
+                if (mainContent) mainContent.style.marginLeft = '70px';
+                
+                // Atualizar ícone do botão
+                if (sidebarToggle) {
+                    const icon = sidebarToggle.querySelector('i');
+                    if (icon) {
+                        icon.classList.remove('bi-list');
+                        icon.classList.add('bi-arrow-right');
+                    }
+                }
+            } else {
+                sidebar.classList.remove('collapsed');
+                if (mainContent) mainContent.style.marginLeft = '250px';
+                
+                // Atualizar ícone do botão
+                if (sidebarToggle) {
+                    const icon = sidebarToggle.querySelector('i');
+                    if (icon) {
+                        icon.classList.remove('bi-arrow-right');
+                        icon.classList.add('bi-list');
+                    }
+                }
+            }
+        }
+    }
+}
+
+// Executar na carga inicial e no redimensionamento
+window.addEventListener('load', function() {
+    applySavedStates();
+    handleResize();
+});
+window.addEventListener('resize', handleResize);
+
+
+
+35. Atualizar o arquivo _LoginPartial.cshtml:
+@using BlackCoffe.UI.Services
+@inject IAuthService AuthService
+@{
+    string foto = AuthService.GetUserFoto();
+    foto = string.IsNullOrEmpty(foto) ? "http://localhost:5058/img/usuarios/no-photo.png" : foto;
+}
+
+@if (AuthService.IsAuthenticated())
+{
+    <div class="nav-item dropdown userDropdown">
+        <a class="d-flex align-items-center text-decoration-none dropdown-toggle" href="#" role="button"
+            data-bs-toggle="dropdown" aria-expanded="false">
+            <img src="@foto" width="40" class="me-2" />
+            <div class="d-none d-md-block text-white">
+                <div class="mb-0">@AuthService.GetUserName()</div>
+                <small class="mt-0">@AuthService.GetUserPerfil()</small>
+            </div>
+        </a>
+        <ul class="dropdown-menu" style="left: unset !important; right: 0 !important;">
+            <li><a class="dropdown-item" href="#">Meu Perfil</a></li>
+            @if (AuthService.GetUserPerfil() == "Administrador")
+            {
+                <li><a class="dropdown-item" asp-action="Index" asp-controller="Admin">Acessar Área Administrativa </a> </li>
+                <li><a class="dropdown-item" asp-action="Index" asp-controller="Home">Acessar Área Publica</a></li>
+            }
+            <li>
+                <hr class="dropdown-divider">
+            </li>
+            <li><a class="dropdown-item" asp-controller="Auth" asp-action="Logout">Sair</a></li>
+        </ul>
+    </div>
+}
+else
+{
+    <div>
+        <a class="btn btn-dark text-white px-3" asp-controller="Auth" asp-action="Login">Acesso</a>
+    </div>
+}
+
+
+
+36. Crie na pasta Views\Shared o arquivo _LayoutAdmin.cshtml:
+@{
+    string activeMenu(string Link) {
+        return ViewBag.Menu == Link ? "active" : "";
+    }
+}
+
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BlackCoffe - @ViewData["Title"]</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.3/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="~/css/admin.css">
+    @await RenderSectionAsync("Styles", false)
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary fixed-top">
+        <div class="container-fluid">
+            <!-- Botão para expandir/diminuir sidebar -->
+            <button class="btn btn-outline-light me-2" id="sidebarToggle">
+                <i class="bi bi-list"></i>
+            </button>
+            
+            <!-- Logo -->
+            <a class="navbar-brand" href="#">
+                BlackCoffe
+            </a>
+            
+            <!-- Botões do lado direito -->
+            <div class="d-flex align-items-end ms-auto">
+                <!-- Botão de alternar tema -->
+                <button class="btn btn-outline-light me-3" id="themeToggle">
+                    <i class="bi bi-moon"></i>
+                </button>
+                <partial name="_LoginPartial.cshtml">
+            </div>
+        </div>
+    </nav>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="d-flex flex-column flex-shrink-0 p-3 h-100">
+            <ul class="nav nav-pills flex-column mb-auto">
+                <li class="nav-item">
+                    <a asp-action="Index" asp-controller="Admin" class='nav-link @activeMenu("Admin")' aria-current="page">
+                        <i class="bi bi-speedometer2 me-2"></i>
+                        <span>Dashboard</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" class="nav-link">
+                        <i class="bi bi-people me-2"></i>
+                        <span>Clientes</span>
+                    </a>
+                </li>
+                <li>
+                    <a asp-action="Index" asp-controller="Produtos" class='nav-link @activeMenu("Produtos")'>
+                        <i class="bi bi-box-seam me-2"></i>
+                        <span>Produtos</span>
+                    </a>
+                </li>
+                <li>
+                    <a asp-action="Index" asp-controller="Categorias" class='nav-link @activeMenu("Categorias")'>
+                        <i class="bi bi-tags me-2"></i>
+                        <span>Categorias</span>
+                    </a>
+                </li>
+                <li><hr class="my-2"></li>
+                <li>
+                    <a href="#" class="nav-link">
+                        <i class="bi bi-person-circle me-2"></i>
+                        <span>Usuários</span>
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Conteúdo Principal -->
+    <main class="main-content">
+        <div class="container-fluid">
+            @RenderBody()
+        </div>
+    </main>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="~/js/admin.js"></script>
+    @await RenderSectionAsync("Scripts", false)
+</body>
+</html>
+
+
+
+37. Criar na pasta Views uma pasta Admin e dentro um arquivo Index.cshtml:
+@{
+    ViewData["Title"] = "Área Administrativa";
+    Layout = "~/Views/Shared/_LayoutAdmin.cshtml";
+    ViewData["Menu"] = "Admin";
+}
+
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-2 mb-3 border-bottom">
+    <h1 class="h2">Dashboard</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <div class="btn-group me-2">
+            <button type="button" class="btn btn-sm btn-outline-secondary">Compartilhar</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary">Exportar</button>
+        </div>
+        <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle">
+            <i class="bi bi-calendar3"></i>
+            Esta semana
+        </button>
+    </div>
+</div>
+
+<!-- Cards de Resumo -->
+<div class="row">
+    <div class="col-md-3 mb-4">
+        <div class="card text-white bg-primary">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title">Clientes</h5>
+                        <h2 class="mb-0">1,248</h2>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="bi bi-people fs-1"></i>
+                    </div>
+                </div>
+                <p class="card-text mt-2"><small>+12% desde o último mês</small></p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-4">
+        <div class="card text-white bg-success">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title">Produtos</h5>
+                        <h2 class="mb-0">5,421</h2>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="bi bi-box-seam fs-1"></i>
+                    </div>
+                </div>
+                <p class="card-text mt-2"><small>+8% desde o último mês</small></p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-4">
+        <div class="card text-white bg-warning">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title">Pedidos</h5>
+                        <h2 class="mb-0">342</h2>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="bi bi-cart-check fs-1"></i>
+                    </div>
+                </div>
+                <p class="card-text mt-2"><small>+5% desde o último mês</small></p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-4">
+        <div class="card text-white bg-info">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title">Receita</h5>
+                        <h2 class="mb-0">R$ 42,8K</h2>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="bi bi-currency-dollar fs-1"></i>
+                    </div>
+                </div>
+                <p class="card-text mt-2"><small>+15% desde o último mês</small></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tabela de Atividades Recentes -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Atividades Recentes</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Usuário</th>
+                                <th>Ação</th>
+                                <th>Data/Hora</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>João Silva</td>
+                                <td>Adicionou novo produto</td>
+                                <td>15/03/2023 14:32</td>
+                                <td><span class="badge bg-success">Concluído</span></td>
+                            </tr>
+                            <tr>
+                                <td>Maria Santos</td>
+                                <td>Atualizou informações do cliente</td>
+                                <td>15/03/2023 13:15</td>
+                                <td><span class="badge bg-success">Concluído</span></td>
+                            </tr>
+                            <tr>
+                                <td>Pedro Oliveira</td>
+                                <td>Excluiu categoria</td>
+                                <td>15/03/2023 11:45</td>
+                                <td><span class="badge bg-danger">Falhou</span></td>
+                            </tr>
+                            <tr>
+                                <td>Ana Costa</td>
+                                <td>Criou novo usuário</td>
+                                <td>14/03/2023 16:20</td>
+                                <td><span class="badge bg-success">Concluído</span></td>
+                            </tr>
+                            <tr>
+                                <td>Carlos Lima</td>
+                                <td>Atualizou permissões</td>
+                                <td>14/03/2023 10:05</td>
+                                <td><span class="badge bg-success">Concluído</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+38. Atualize o método de Login do AuthController
+[HttpPost]
+[ValidateAntiForgeryToken]
+public async Task<IActionResult> Login(LoginVM loginVM)
+{
+    if (!ModelState.IsValid)
+        return View(loginVM);
+
+    var (success, message) = await _authService.LoginAsync(loginVM);
+
+    if (success)
+    {
+        if (_authService.GetUserPerfil() == "Administrador")
+            return RedirectToAction("Index", "Admin");
+        else
+            return RedirectToAction("Index", "Home");
+    }
+
+    ModelState.AddModelError(string.Empty, message);
+    return View(loginVM);
+}
+
+
+
+39. Teste logar e acessar a área pública e administrativa.
+
+
+
+40. Criar a classe CategoriaDto na pasta DTOs:
+using System.Text.Json.Serialization;
+
+namespace BlackCoffe.UI.DTOs;
+
+public class CategoriaDto
+{
+    [JsonPropertyName("id")]
+    public int Id { get; set; }
+
+    [JsonPropertyName("nome")]
+    public string Nome { get; set; } = string.Empty;
+
+    [JsonPropertyName("foto")]
+    public string Foto { get; set; } = string.Empty;
+
+    [JsonPropertyName("cor")]
+    public string Cor { get; set; } = "rgba(0,0,0,1)";
+}
+
+
+
+41. Criar a interface ICategoriaService na pasta \Services\Interfaces:
+using BlackCoffe.UI.DTOs;
+
+namespace BlackCoffe.UI.Services.Interfaces;
+
+public interface ICategoriaService
+{
+    Task<List<CategoriaDto>> ObterTodasAsync();
+    Task<CategoriaDto> ObterPorIdAsync(int id);
+    Task<bool> CriarAsync(CategoriaDto categoria);
+    Task<bool> CriarComFotoAsync(CategoriaDto categoria, IFormFile foto);
+    Task<bool> AtualizarAsync(int id, CategoriaDto categoria);
+    Task<bool> AtualizarComFotoAsync(int id, CategoriaDto categoria, IFormFile foto);
+    Task<bool> ExcluirAsync(int id);
+}
+
+
+
+42. Criar a classe CategoriaService na pasta \Services\Implementations:
+using BlackCoffe.UI.DTOs;
+using BlackCoffe.UI.Models;
+using BlackCoffe.UI.Services.Interfaces;
+using Microsoft.Extensions.Options;
+
+namespace BlackCoffe.UI.Services.Implementations;
+
+public class CategoriaService : BaseApiService, ICategoriaService
+{
+    public CategoriaService(
+        HttpClient httpClient,
+        IOptions<ApiSettings> apiSettings,
+        IHttpContextAccessor httpContextAccessor)
+        : base(httpClient, apiSettings, httpContextAccessor)
+    {
+    }
+
+    public async Task<List<CategoriaDto>> ObterTodasAsync()
+    {
+        return await GetAsync<List<CategoriaDto>>("categorias");
+    }
+
+    public async Task<CategoriaDto> ObterPorIdAsync(int id)
+    {
+        return await GetAsync<CategoriaDto>($"categorias/{id}");
+    }
+
+    public async Task<bool> CriarAsync(CategoriaDto categoria)
+    {
+        try
+        {
+            // Converter para FormData para enviar arquivo
+            var formData = new MultipartFormDataContent
+            {
+                { new StringContent(categoria.Nome), "Nome" },
+                { new StringContent(categoria.Cor), "Cor" }
+            };
+
+            var response = await _httpClient.PostAsync("categorias", formData);
+            return response.IsSuccessStatusCode;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    public async Task<bool> CriarComFotoAsync(CategoriaDto categoria, IFormFile foto)
+    {
+        try
+        {
+            var formData = new MultipartFormDataContent
+            {
+                { new StringContent(categoria.Nome), "Nome" },
+                { new StringContent(categoria.Cor), "Cor" }
+            };
+            
+            if (foto != null)
+            {
+                var fileContent = new StreamContent(foto.OpenReadStream());
+                fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(foto.ContentType);
+                formData.Add(fileContent, "Foto", foto.FileName);
+            }
+
+            var response = await _httpClient.PostAsync("categorias", formData);
+            return response.IsSuccessStatusCode;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    public async Task<bool> AtualizarAsync(int id, CategoriaDto categoria)
+    {
+        try
+        {
+            var formData = new MultipartFormDataContent
+            {
+                { new StringContent(id.ToString()), "Id" },
+                { new StringContent(categoria.Nome), "Nome" },
+                { new StringContent(categoria.Cor), "Cor" }
+            };
+
+            var response = await _httpClient.PutAsync($"categorias/{id}", formData);
+            return response.IsSuccessStatusCode;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    public async Task<bool> AtualizarComFotoAsync(int id, CategoriaDto categoria, IFormFile foto)
+    {
+        try
+        {
+            var formData = new MultipartFormDataContent
+            {
+                { new StringContent(id.ToString()), "Id" },
+                { new StringContent(categoria.Nome), "Nome" },
+                { new StringContent(categoria.Cor), "Cor" }
+            };
+            
+            if (foto != null)
+            {
+                var fileContent = new StreamContent(foto.OpenReadStream());
+                fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(foto.ContentType);
+                formData.Add(fileContent, "Foto", foto.FileName);
+            }
+
+            var response = await _httpClient.PutAsync($"categorias/{id}", formData);
+            return response.IsSuccessStatusCode;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    public async Task<bool> ExcluirAsync(int id)
+    {
+        return await DeleteAsync($"categorias/{id}");
+    }
+}
+
+
+
+43. Registrar o Serviço no Program.cs:
+-- linha 1:
+using BlackCoffe.UI;
+
+-- localize a linha // Serviços de API:
+// Serviços de API
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<ICategoriaService, CategoriaService>();
+
+
+
+44. Criar na pasta ViewModel a classe CategoriaVM:
+using System.ComponentModel.DataAnnotations;
+
+namespace BlackCoffe.UI.ViewModels;
+
+public class CategoriaVM
+{
+    public int Id { get; set; }
+
+    [Required(ErrorMessage = "O nome é obrigatório")]
+    [StringLength(50, ErrorMessage = "Máximo 50 caracteres")]
+    [Display(Name = "Nome")]
+    public string Nome { get; set; } = string.Empty;
+
+    [Display(Name = "Foto")]
+    public IFormFile Foto { get; set; }
+
+    public string FotoUrl { get; set; }
+
+    [StringLength(26, ErrorMessage = "Máximo 26 caracteres")]
+    [Display(Name = "Cor")]
+    public string Cor { get; set; } = "rgba(0,0,0,1)";
+}
+
+
+
+45. Executar no terminal:
+dotnet add package AutoMapper --version 13.0.1
+
+
+
+46. Criar na pasta BlackCoffe.UI a classe MappingConfig:
+using AutoMapper;
+using BlackCoffe.UI.DTOs;
+using BlackCoffe.UI.ViewModels;
+
+namespace BlackCoffe.UI;
+
+public class MappingConfig : Profile
+{
+    public MappingConfig()
+    {
+        // Mapeamento para Categorias
+        CreateMap<CategoriaDto, CategoriaVM>()
+            .ForMember(dest => dest.FotoUrl, opt => opt.MapFrom(src => src.Foto))
+            .ForMember(dest => dest.Foto, opt => opt.Ignore());
+
+        CreateMap<CategoriaVM, CategoriaDto>()
+            .ForMember(dest => dest.Foto, opt => opt.Ignore());
+    }
+}
+
+
+
+47. Adicionar no Program.cs, antes da linha // Serviços de API
+// AutoMapper
+builder.Services.AddAutoMapper(typeof(MappingConfig));
+
+// Serviços de API
+.....
+
+
+
+48. Criar o Controller CategoriasController na pasta Controllers
+using AutoMapper;
+using BlackCoffe.UI.DTOs;
+using BlackCoffe.UI.Services.Interfaces;
+using BlackCoffe.UI.ViewModels;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+
+namespace BlackCoffe.UI.Controllers;
+
+public class CategoriasController : Controller
+{
+    private readonly ICategoriaService _categoriaService;
+    private readonly IMapper _mapper;
+    private readonly ILogger<CategoriasController> _logger;
+
+    public CategoriasController(
+        ICategoriaService categoriaService,
+        IMapper mapper,
+        ILogger<CategoriasController> logger)
+    {
+        _categoriaService = categoriaService;
+        _mapper = mapper;
+        _logger = logger;
+    }
+
+    // GET: Categorias
+    public async Task<IActionResult> Index()
+    {
+        try
+        {
+            var categorias = await _categoriaService.ObterTodasAsync();
+            var categoriasVM = _mapper.Map<List<CategoriaVM>>(categorias);
+            return View(categoriasVM);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Erro ao carregar categorias");
+            TempData["Erro"] = "Erro ao carregar categorias. Tente novamente.";
+            return View(new List<CategoriaVM>());
+        }
+    }
+
+    // GET: Categorias/Details/5
+    public async Task<IActionResult> Details(int id)
+    {
+        try
+        {
+            var categoria = await _categoriaService.ObterPorIdAsync(id);
+            if (categoria == null)
+            {
+                TempData["Erro"] = "Categoria não encontrada.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            var categoriaVM = _mapper.Map<CategoriaVM>(categoria);
+            return View(categoriaVM);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Erro ao carregar categoria {Id}", id);
+            TempData["Erro"] = "Erro ao carregar categoria.";
+            return RedirectToAction(nameof(Index));
+        }
+    }
+
+    // GET: Categorias/Create
+    [Authorize(Roles = "Administrador")]
+    public IActionResult Create()
+    {
+        return View();
+    }
+
+    // POST: Categorias/Create
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Roles = "Administrador")]
+    public async Task<IActionResult> Create(CategoriaVM categoriaVM)
+    {
+        if (!ModelState.IsValid)
+            return View(categoriaVM);
+
+        try
+        {
+            var categoriaDto = _mapper.Map<CategoriaDto>(categoriaVM);
+            var success = await _categoriaService.CriarAsync(categoriaDto);
+
+            if (success)
+            {
+                TempData["Sucesso"] = "Categoria criada com sucesso!";
+                return RedirectToAction(nameof(Index));
+            }
+
+            ModelState.AddModelError("", "Erro ao criar categoria.");
+            return View(categoriaVM);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Erro ao criar categoria");
+            ModelState.AddModelError("", "Erro interno ao criar categoria.");
+            return View(categoriaVM);
+        }
+    }
+
+    // GET: Categorias/Edit/5
+    [Authorize(Roles = "Administrador")]
+    public async Task<IActionResult> Edit(int id)
+    {
+        try
+        {
+            var categoria = await _categoriaService.ObterPorIdAsync(id);
+            if (categoria == null)
+            {
+                TempData["Erro"] = "Categoria não encontrada.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            var categoriaVM = _mapper.Map<CategoriaVM>(categoria);
+            return View(categoriaVM);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Erro ao carregar categoria para edição {Id}", id);
+            TempData["Erro"] = "Erro ao carregar categoria.";
+            return RedirectToAction(nameof(Index));
+        }
+    }
+
+    // POST: Categorias/Edit/5
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Roles = "Administrador")]
+    public async Task<IActionResult> Edit(int id, CategoriaVM categoriaVM)
+    {
+        if (id != categoriaVM.Id)
+        {
+            TempData["Erro"] = "Categoria inválida.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        if (!ModelState.IsValid)
+            return View(categoriaVM);
+
+        try
+        {
+            var categoriaDto = _mapper.Map<CategoriaDto>(categoriaVM);
+            var success = await _categoriaService.AtualizarAsync(id, categoriaDto);
+
+            if (success)
+            {
+                TempData["Sucesso"] = "Categoria atualizada com sucesso!";
+                return RedirectToAction(nameof(Index));
+            }
+
+            ModelState.AddModelError("", "Erro ao atualizar categoria.");
+            return View(categoriaVM);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Erro ao atualizar categoria {Id}", id);
+            ModelState.AddModelError("", "Erro interno ao atualizar categoria.");
+            return View(categoriaVM);
+        }
+    }
+
+    // GET: Categorias/Delete/5
+    [Authorize(Roles = "Administrador")]
+    public async Task<IActionResult> Delete(int id)
+    {
+        try
+        {
+            var categoria = await _categoriaService.ObterPorIdAsync(id);
+            if (categoria == null)
+            {
+                TempData["Erro"] = "Categoria não encontrada.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            var categoriaVM = _mapper.Map<CategoriaVM>(categoria);
+            return View(categoriaVM);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Erro ao carregar categoria para exclusão {Id}", id);
+            TempData["Erro"] = "Erro ao carregar categoria.";
+            return RedirectToAction(nameof(Index));
+        }
+    }
+
+    // POST: Categorias/Delete/5
+    [HttpPost, ActionName("Delete")]
+    [ValidateAntiForgeryToken]
+    [Authorize(Roles = "Administrador")]
+    public async Task<IActionResult> DeleteConfirmed(int id)
+    {
+        try
+        {
+            var success = await _categoriaService.ExcluirAsync(id);
+
+            if (success)
+            {
+                TempData["Sucesso"] = "Categoria excluída com sucesso!";
+            }
+            else
+            {
+                TempData["Erro"] = "Erro ao excluir categoria.";
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Erro ao excluir categoria {Id}", id);
+            TempData["Erro"] = "Erro interno ao excluir categoria.";
+        }
+
+        return RedirectToAction(nameof(Index));
+    }
+}
+
+
+
+49. Criar na pasta Views uma pasta Categorias e dentro um arquivo Index.cshtml:
+@model List<CategoriaVM>
+@{
+    ViewData["Title"] = "Categorias";
+    Layout = "~/Views/Shared/_LayoutAdmin.cshtml";
+    ViewData["Menu"] = "Categorias";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>@ViewData["Title"]</h1>
+    @if (User.IsInRole("Administrador"))
+    {
+        <a asp-action="Create" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Nova Categoria
+        </a>
+    }
+</div>
+
+@if (TempData["Sucesso"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="fas fa-check-circle"></i> @TempData["Sucesso"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+@if (TempData["Erro"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="fas fa-exclamation-circle"></i> @TempData["Erro"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<div class="card">
+    <div class="card-header">
+        <h5 class="card-title mb-0">Lista de Categorias</h5>
+    </div>
+    <div class="card-body">
+        @if (Model.Any())
+        {
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>ID</th>
+                            <th>Foto</th>
+                            <th>Nome</th>
+                            <th>Cor</th>
+                            <th class="text-center">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var categoria in Model)
+                        {
+                            <tr>
+                                <td>@categoria.Id</td>
+                                <td>
+                                    @if (!string.IsNullOrEmpty(categoria.FotoUrl))
+                                    {
+                                        <img src="@categoria.FotoUrl" alt="@categoria.Nome" 
+                                             class="img-thumbnail" style="width: 60px; height: 60px; object-fit: cover;">
+                                    }
+                                    else
+                                    {
+                                        <div class="bg-light rounded d-flex align-items-center justify-content-center" 
+                                             style="width: 60px; height: 60px;">
+                                            <i class="fas fa-image text-muted"></i>
+                                        </div>
+                                    }
+                                </td>
+                                <td>@categoria.Nome</td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="color-preview me-2" 
+                                             style="width: 20px; height: 20px; background-color: @categoria.Cor; border: 1px solid #ccc; border-radius: 3px;"></div>
+                                        <small>@categoria.Cor</small>
+                                    </div>
+                                </td>
+                                <td class="text-center">
+                                    <div class="btn-group" role="group">
+                                        <a asp-action="Details" asp-route-id="@categoria.Id" 
+                                           class="btn btn-info btn-sm" title="Detalhes">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        @if (User.IsInRole("Administrador"))
+                                        {
+                                            <a asp-action="Edit" asp-route-id="@categoria.Id" 
+                                               class="btn btn-warning btn-sm" title="Editar">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <a asp-action="Delete" asp-route-id="@categoria.Id" 
+                                               class="btn btn-danger btn-sm" title="Excluir">
+                                                <i class="fas fa-trash"></i>
+                                            </a>
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <div class="text-center py-4">
+                <i class="fas fa-folder-open fa-3x text-muted mb-3"></i>
+                <h4>Nenhuma categoria encontrada</h4>
+                <p class="text-muted">Não há categorias cadastradas no sistema.</p>
+                @if (User.IsInRole("Administrador"))
+                {
+                    <a asp-action="Create" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Cadastrar Primeira Categoria
+                    </a>
+                }
+            </div>
+        }
+    </div>
+    @if (Model.Any())
+    {
+        <div class="card-footer">
+            <small class="text-muted">Total de @Model.Count categorias cadastradas</small>
+        </div>
+    }
+</div>
+
+
+
+50. Criar na pasta Views\Categorias um arquivo Details.cshtml:
+@model CategoriaVM
+@{
+    ViewData["Title"] = "Categorias";
+    Layout = "~/Views/Shared/_LayoutAdmin.cshtml";
+    ViewData["Menu"] = "Categorias";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>@Model.Nome</h1>
+    <div>
+        <a asp-action="Index" class="btn btn-secondary">Voltar</a>
+        @if (User.IsInRole("Administrador"))
+        {
+            <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">Editar</a>
+            <a asp-action="Delete" asp-route-id="@Model.Id" class="btn btn-danger">Excluir</a>
+        }
+    </div>
+</div>
+
+@if (TempData["Erro"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        @TempData["Erro"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<div class="row">
+    <div class="col-md-4">
+        @if (!string.IsNullOrEmpty(Model.FotoUrl))
+        {
+            <img src="@Model.FotoUrl" class="img-fluid rounded" alt="@Model.Nome">
+        }
+        else
+        {
+            <div class="bg-light rounded d-flex align-items-center justify-content-center" style="height: 300px;">
+                <i class="fas fa-image fa-5x text-muted"></i>
+            </div>
+        }
+    </div>
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-body">
+                <h3 class="card-title">@Model.Nome</h3>
+                <hr>
+                <div class="mb-3">
+                    <h5>Cor:</h5>
+                    <div class="d-flex align-items-center">
+                        <div class="color-preview me-2" style="width: 30px; height: 30px; background-color: @Model.Cor; border: 1px solid #ccc; border-radius: 4px;"></div>
+                        <span>@Model.Cor</span>
+                    </div>
+                </div>
+                
+                <div class="mt-4">
+                    <small class="text-muted">ID: @Model.Id</small>
+                </div>
+            </div>
+        </div>
+    </div>s
+</div>
+
+
+
+51. Criar na pasta Views\Categorias um arquivo Create.cshtml:
+@model CategoriaVM
+@{
+    ViewData["Title"] = "Nova Categoria";
+    Layout = "~/Views/Shared/_LayoutAdmin.cshtml";
+    ViewData["Menu"] = "Categorias";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>@ViewData["Title"]</h1>
+    <a asp-action="Index" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left"></i> Voltar para Lista
+    </a>
+</div>
+
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Preencha os dados da categoria</h5>
+            </div>
+            <div class="card-body">
+                <form asp-action="Create" method="post" enctype="multipart/form-data" id="createForm">
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label asp-for="Nome" class="form-label"></label>
+                                <input asp-for="Nome" class="form-control" placeholder="Digite o nome da categoria" />
+                                <span asp-validation-for="Nome" class="text-danger small"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label asp-for="Cor" class="form-label"></label>
+                                <input asp-for="Cor" class="form-control" placeholder="Ex: #FF0000 ou rgba(255,0,0,1)"
+                                    value="rgba(0,0,0,1)" />
+                                <span asp-validation-for="Cor" class="text-danger small"></span>
+                                <div class="form-text">Use formato hexadecimal (#FF0000) ou RGBA (rgba(255,0,0,1))</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Foto" class="form-label"></label>
+                        <input asp-for="Foto" type="file" class="form-control" accept="image/*" id="fotoInput" />
+                        <span asp-validation-for="Foto" class="text-danger small"></span>
+                        <div class="form-text">
+                            Formatos suportados: JPG, PNG, GIF, WebP. Tamanho máximo: 5MB.
+                        </div>
+                    </div>
+
+                    <!-- Preview da imagem -->
+                    <div class="mb-3" id="imagePreviewContainer" style="display: none;">
+                        <label class="form-label">Preview da Imagem:</label>
+                        <div class="border rounded p-3 text-center">
+                            <img id="imagePreview" class="img-fluid rounded" style="max-height: 200px;" />
+                            <div class="mt-2">
+                                <button type="button" class="btn btn-sm btn-outline-danger" onclick="clearImage()">
+                                    <i class="fas fa-times"></i> Remover Imagem
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-4">
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <button type="submit" class="btn btn-success me-md-2">
+                                <i class="fas fa-save"></i> Criar Categoria
+                            </button>
+                            <a asp-action="Index" class="btn btn-secondary">
+                                <i class="fas fa-times"></i> Cancelar
+                            </a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
+    <script>
+        // Preview da imagem selecionada
+        document.getElementById('fotoInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            const previewContainer = document.getElementById('imagePreviewContainer');
+            const preview = document.getElementById('imagePreview');
+            
+            if (file) {
+                // Validar tamanho do arquivo (5MB)
+                const fileSize = file.size / 1024 / 1024;
+                if (fileSize > 5) {
+                    alert('O arquivo é muito grande. Tamanho máximo permitido: 5MB');
+                    e.target.value = '';
+                    previewContainer.style.display = 'none';
+                    return;
+                }
+                
+                // Validar tipo do arquivo
+                const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+                if (!validTypes.includes(file.type)) {
+                    alert('Tipo de arquivo não suportado. Use apenas imagens JPG, PNG, GIF ou WebP.');
+                    e.target.value = '';
+                    previewContainer.style.display = 'none';
+                    return;
+                }
+                
+                // Mostrar preview
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    preview.src = e.target.result;
+                    previewContainer.style.display = 'block';
+                }
+                reader.readAsDataURL(file);
+            } else {
+                previewContainer.style.display = 'none';
+            }
+        });
+
+        // Limpar imagem selecionada
+        function clearImage() {
+            document.getElementById('fotoInput').value = '';
+            document.getElementById('imagePreviewContainer').style.display = 'none';
+        }
+
+        // Validação do formulário antes do envio
+        document.getElementById('createForm').addEventListener('submit', function(e) {
+            const nome = document.getElementById('Nome').value.trim();
+            const cor = document.getElementById('Cor').value.trim();
+            
+            if (!nome) {
+                e.preventDefault();
+                showError('Por favor, preencha o nome da categoria.');
+                return;
+            }
+            
+            // Validação básica da cor
+            if (cor && !isValidColor(cor)) {
+                e.preventDefault();
+                showError('Por favor, insira uma cor válida no formato hexadecimal (#FF0000) ou RGBA (rgba(255,0,0,1)).');
+                return;
+            }
+        });
+
+        // Função para validar formato da cor
+        function isValidColor(color) {
+            // Valida formato hexadecimal
+            const hexRegex = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/;
+            // Valida formato RGBA
+            const rgbaRegex = /^rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*(\d+(?:\.\d+)?))?\)$/;
+            
+            return hexRegex.test(color) || rgbaRegex.test(color);
+        }
+
+        // Foco automático no primeiro campo
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('Nome').focus();
+        });
+    </script>
+}
+
+
+
+52. Criar na pasta Views\Categorias um arquivo Edit.cshtml:
+@model CategoriaVM
+@{
+    ViewData["Title"] = "Editar Categoria";
+    Layout = "~/Views/Shared/_LayoutAdmin.cshtml";
+    ViewData["Menu"] = "Categorias";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>@ViewData["Title"]</h1>
+    <a asp-action="Index" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left"></i> Voltar para Lista
+    </a>
+</div>
+
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Edite os dados da categoria</h5>
+            </div>
+            <div class="card-body">
+                <form asp-action="Edit" method="post" enctype="multipart/form-data" id="editForm">
+                    <input type="hidden" asp-for="Id" />
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label asp-for="Nome" class="form-label"></label>
+                                <input asp-for="Nome" class="form-control" placeholder="Digite o nome da categoria" />
+                                <span asp-validation-for="Nome" class="text-danger small"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label asp-for="Cor" class="form-label"></label>
+                                <input asp-for="Cor" class="form-control" placeholder="Ex: #FF0000 ou rgba(255,0,0,1)" />
+                                <span asp-validation-for="Cor" class="text-danger small"></span>
+                                <div class="form-text">Use formato hexadecimal (#FF0000) ou RGBA (rgba(255,0,0,1))</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Foto" class="form-label"></label>
+                        <input asp-for="Foto" type="file" class="form-control" accept="image/*" id="fotoInput" />
+                        <span asp-validation-for="Foto" class="text-danger small"></span>
+                        <div class="form-text">
+                            Deixe em branco para manter a foto atual. Formatos suportados: JPG, PNG, GIF, WebP. Tamanho máximo: 5MB.
+                        </div>
+                    </div>
+
+                    <!-- Preview da imagem atual -->
+                    @if (!string.IsNullOrEmpty(Model.FotoUrl))
+                    {
+                        <div class="mb-3">
+                            <label class="form-label">Foto Atual:</label>
+                            <div class="border rounded p-3 text-center">
+                                <img src="@Model.FotoUrl" class="img-fluid rounded" style="max-height: 200px;" alt="Foto atual da categoria" />
+                                <div class="mt-2">
+                                    <small class="text-muted">Esta é a foto atual da categoria</small>
+                                </div>
+                            </div>
+                        </div>
+                    }
+
+                    <!-- Preview da nova imagem -->
+                    <div class="mb-3" id="imagePreviewContainer" style="display: none;">
+                        <label class="form-label">Preview da Nova Imagem:</label>
+                        <div class="border rounded p-3 text-center">
+                            <img id="imagePreview" class="img-fluid rounded" style="max-height: 200px;" />
+                            <div class="mt-2">
+                                <button type="button" class="btn btn-sm btn-outline-danger" onclick="clearImage()">
+                                    <i class="fas fa-times"></i> Remover Nova Imagem
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-4">
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <button type="submit" class="btn btn-warning me-md-2">
+                                <i class="fas fa-save"></i> Atualizar Categoria
+                            </button>
+                            <a asp-action="Index" class="btn btn-secondary">
+                                <i class="fas fa-times"></i> Cancelar
+                            </a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
+    <script>
+        // Preview da imagem selecionada
+        document.getElementById('fotoInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            const previewContainer = document.getElementById('imagePreviewContainer');
+            const preview = document.getElementById('imagePreview');
+            
+            if (file) {
+                // Validar tamanho do arquivo (5MB)
+                const fileSize = file.size / 1024 / 1024;
+                if (fileSize > 5) {
+                    showError('O arquivo é muito grande. Tamanho máximo permitido: 5MB');
+                    e.target.value = '';
+                    previewContainer.style.display = 'none';
+                    return;
+                }
+                
+                // Validar tipo do arquivo
+                const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+                if (!validTypes.includes(file.type)) {
+                    showError('Tipo de arquivo não suportado. Use apenas imagens JPG, PNG, GIF ou WebP.');
+                    e.target.value = '';
+                    previewContainer.style.display = 'none';
+                    return;
+                }
+                
+                // Mostrar preview
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    preview.src = e.target.result;
+                    previewContainer.style.display = 'block';
+                }
+                reader.readAsDataURL(file);
+            } else {
+                previewContainer.style.display = 'none';
+            }
+        });
+
+        // Limpar imagem selecionada
+        function clearImage() {
+            document.getElementById('fotoInput').value = '';
+            document.getElementById('imagePreviewContainer').style.display = 'none';
+        }
+
+        // Validação do formulário antes do envio
+        document.getElementById('editForm').addEventListener('submit', function(e) {
+            const nome = document.getElementById('Nome').value.trim();
+            const cor = document.getElementById('Cor').value.trim();
+            
+            if (!nome) {
+                e.preventDefault();
+                showError('Por favor, preencha o nome da categoria.');
+                return;
+            }
+            
+            // Validação básica da cor
+            if (cor && !isValidColor(cor)) {
+                e.preventDefault();
+                showError('Por favor, insira uma cor válida no formato hexadecimal (#FF0000) ou RGBA (rgba(255,0,0,1)).');
+                return;
+            }
+        });
+
+        // Função para validar formato da cor
+        function isValidColor(color) {
+            // Valida formato hexadecimal
+            const hexRegex = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/;
+            // Valida formato RGBA
+            const rgbaRegex = /^rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*(\d+(?:\.\d+)?))?\)$/;
+            
+            return hexRegex.test(color) || rgbaRegex.test(color);
+        }
+
+        // Foco automático no primeiro campo
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('Nome').focus();
+            document.getElementById('Nome').select();
+        });
+    </script>
+}
+
+
+
+53. Criar na pasta Views\Categorias um arquivo Delete.cshtml:
+@model CategoriaVM
+@{
+    ViewData["Title"] = "Excluir Categoria";
+    Layout = "~/Views/Shared/_LayoutAdmin.cshtml";
+    ViewData["Menu"] = "Categorias";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>@ViewData["Title"]</h1>
+    <a asp-action="Index" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left"></i> Voltar para Lista
+    </a>
+</div>
+
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <div class="card border-danger">
+            <div class="card-header bg-danger text-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-exclamation-triangle"></i> Confirmação de Exclusão
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-warning" role="alert">
+                    <h5 class="alert-heading">
+                        <i class="fas fa-exclamation-circle"></i> Atenção!
+                    </h5>
+                    <p class="mb-0">
+                        Você está prestes a excluir a categoria <strong>"@Model.Nome"</strong>. 
+                        Esta ação <strong>não pode ser desfeita</strong>.
+                    </p>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-4">
+                        <!-- Foto da categoria -->
+                        @if (!string.IsNullOrEmpty(Model.FotoUrl))
+                        {
+                            <div class="text-center mb-3">
+                                <img src="@Model.FotoUrl" class="img-fluid rounded" style="max-height: 200px;" alt="@Model.Nome" />
+                                <small class="text-muted">Foto da categoria</small>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="text-center mb-3">
+                                <div class="bg-light rounded d-flex align-items-center justify-content-center" style="height: 200px;">
+                                    <i class="fas fa-image fa-3x text-muted"></i>
+                                </div>
+                                <small class="text-muted">Nenhuma foto</small>
+                            </div>
+                        }
+                    </div>
+                    <div class="col-md-8">
+                        <!-- Detalhes da categoria -->
+                        <div class="mb-3">
+                            <h6>Detalhes da Categoria:</h6>
+                            <table class="table table-sm table-borderless">
+                                <tr>
+                                    <td class="fw-bold" style="width: 120px;">ID:</td>
+                                    <td>@Model.Id</td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold">Nome:</td>
+                                    <td>@Model.Nome</td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold">Cor:</td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="color-preview me-2" 
+                                                 style="width: 20px; height: 20px; background-color: @Model.Cor; border: 1px solid #ccc; border-radius: 3px;"></div>
+                                            <small>@Model.Cor</small>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+
+                        <!-- Aviso adicional -->
+                        <div class="alert alert-info">
+                            <h6 class="alert-heading">
+                                <i class="fas fa-info-circle"></i> Informação Importante
+                            </h6>
+                            <p class="mb-0 small">
+                                Ao excluir esta categoria, a foto associada também será removida do servidor. 
+                                Certifique-se de que esta categoria não está sendo utilizada por nenhum produto antes de prosseguir.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <form asp-action="Delete" method="post" id="deleteForm">
+                    <input type="hidden" asp-for="Id" />
+                    
+                    <div class="mt-4">
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <button type="submit" class="btn btn-danger me-md-2" id="btnDelete">
+                                <i class="fas fa-trash"></i> Confirmar Exclusão
+                            </button>
+                            <a asp-action="Index" class="btn btn-secondary">
+                                <i class="fas fa-times"></i> Cancelar
+                            </a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Confirmação adicional antes de excluir
+        document.getElementById('deleteForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            Swal.fire({
+                title: 'Tem certeza?',
+                text: "Você realmente deseja excluir a categoria '@Model.Nome'? Esta ação não pode ser desfeita!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Sim, excluir!',
+                cancelButtonText: 'Cancelar',
+                reverseButtons: true
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Desabilita o botão para evitar múltiplos cliques
+                    const btn = document.getElementById('btnDelete');
+                    btn.disabled = true;
+                    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Excluindo...';
+                    
+                    // Submete o formulário
+                    e.target.submit();
+                }
+            });
+        });
+    </script>
+}
+
+
+
+54. Crie na pasta DTOs o arquivo ProdutoDto.cs:
+using System.Text.Json.Serialization;
+
+namespace BlackCoffe.UI.DTOs;
+
+public class ProdutoDto
+{
+    [JsonPropertyName("id")]
+    public int Id { get; set; }
+
+    [JsonPropertyName("categoriaId")]
+    public int CategoriaId { get; set; }
+
+    [JsonPropertyName("nome")]
+    public string Nome { get; set; } = string.Empty;
+
+    [JsonPropertyName("descricao")]
+    public string Descricao { get; set; } = string.Empty;
+
+    [JsonPropertyName("qtde")]
+    public int Qtde { get; set; } = 0;
+
+    [JsonPropertyName("valorCusto")]
+    public decimal ValorCusto { get; set; } = 0;
+
+    [JsonPropertyName("valorVenda")]
+    public decimal ValorVenda { get; set; } = 0;
+
+    [JsonPropertyName("destaque")]
+    public bool Destaque { get; set; } = false;
+
+    [JsonPropertyName("foto")]
+    public string Foto { get; set; } = string.Empty;
+
+    [JsonPropertyName("categoriaNome")]
+    public string CategoriaNome { get; set; } = string.Empty;
+}
+
+
+
+55. Crie na pasta ViewModels a classe ProdutoVM:
+using System.ComponentModel.DataAnnotations;
+
+namespace BlackCoffe.UI.ViewModels;
+
+public class ProdutoVM
+{
+    public int Id { get; set; }
+
+    [Required(ErrorMessage = "A categoria é obrigatória")]
+    [Display(Name = "Categoria")]
+    public int CategoriaId { get; set; }
+
+    [Required(ErrorMessage = "O nome é obrigatório")]
+    [StringLength(100, ErrorMessage = "Máximo 100 caracteres")]
+    [Display(Name = "Nome do Produto")]
+    public string Nome { get; set; } = string.Empty;
+
+    [StringLength(3000, ErrorMessage = "Máximo 3000 caracteres")]
+    [Display(Name = "Descrição")]
+    public string Descricao { get; set; } = string.Empty;
+
+    [Required(ErrorMessage = "A quantidade é obrigatória")]
+    [Range(0, int.MaxValue, ErrorMessage = "A quantidade não pode ser negativa")]
+    [Display(Name = "Quantidade em Estoque")]
+    public int Qtde { get; set; } = 0;
+
+    [Required(ErrorMessage = "O valor de custo é obrigatório")]
+    [Range(0, double.MaxValue, ErrorMessage = "O valor de custo não pode ser negativo")]
+    [Display(Name = "Valor de Custo")]
+    public decimal ValorCusto { get; set; } = 0;
+
+    [Required(ErrorMessage = "O valor de venda é obrigatório")]
+    [Range(0, double.MaxValue, ErrorMessage = "O valor de venda não pode ser negativo")]
+    [Display(Name = "Valor de Venda")]
+    public decimal ValorVenda { get; set; } = 0;
+
+    [Display(Name = "Produto em Destaque")]
+    public bool Destaque { get; set; } = false;
+
+    [Display(Name = "Foto do Produto")]
+    public IFormFile Foto { get; set; }
+
+    public string FotoUrl { get; set; }
+    public string CategoriaNome { get; set; }
+}
+
+
+
+56. Criar a interface IProdutoService na pasta \Services\Interfaces:
+using BlackCoffe.UI.DTOs;
+
+namespace BlackCoffe.UI.Services.Interfaces;
+
+public interface IProdutoService
+{
+    Task<List<ProdutoDto>> ObterTodosAsync();
+    Task<ProdutoDto> ObterPorIdAsync(int id);
+    Task<bool> CriarAsync(ProdutoDto produto);
+    Task<bool> CriarComFotoAsync(ProdutoDto produto, IFormFile foto);
+    Task<bool> AtualizarAsync(int id, ProdutoDto produto);
+    Task<bool> AtualizarComFotoAsync(int id, ProdutoDto produto, IFormFile foto);
+    Task<bool> ExcluirAsync(int id);
+}
+
+
+
+57. Criar a classe ProdutoService na pasta \Services\Implementations:
+using BlackCoffe.UI.DTOs;
+using BlackCoffe.UI.Models;
+using BlackCoffe.UI.Services.Interfaces;
+using Microsoft.Extensions.Options;
+
+namespace BlackCoffe.UI.Services.Implementations;
+
+public class ProdutoService : BaseApiService, IProdutoService
+{
+    public ProdutoService(
+        HttpClient httpClient,
+        IOptions<ApiSettings> apiSettings,
+        IHttpContextAccessor httpContextAccessor)
+        : base(httpClient, apiSettings, httpContextAccessor)
+    {
+    }
+
+    public async Task<List<ProdutoDto>> ObterTodosAsync()
+    {
+        return await GetAsync<List<ProdutoDto>>("produtos");
+    }
+
+    public async Task<ProdutoDto> ObterPorIdAsync(int id)
+    {
+        return await GetAsync<ProdutoDto>($"produtos/{id}");
+    }
+
+    public async Task<bool> CriarAsync(ProdutoDto produto)
+    {
+        try
+        {
+            var formData = new MultipartFormDataContent();
+            AddProdutoToFormData(formData, produto);
+            
+            var response = await _httpClient.PostAsync("produtos", formData);
+            return response.IsSuccessStatusCode;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    public async Task<bool> CriarComFotoAsync(ProdutoDto produto, IFormFile foto)
+    {
+        try
+        {
+            var formData = new MultipartFormDataContent();
+            AddProdutoToFormData(formData, produto);
+            
+            if (foto != null && foto.Length > 0)
+            {
+                var fileContent = new StreamContent(foto.OpenReadStream());
+                fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(foto.ContentType);
+                formData.Add(fileContent, "Foto", foto.FileName);
+            }
+
+            var response = await _httpClient.PostAsync("produtos", formData);
+            return response.IsSuccessStatusCode;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    public async Task<bool> AtualizarAsync(int id, ProdutoDto produto)
+    {
+        try
+        {
+            var formData = new MultipartFormDataContent();
+            AddProdutoToFormData(formData, produto);
+            formData.Add(new StringContent(id.ToString()), "Id");
+
+            var response = await _httpClient.PutAsync($"produtos/{id}", formData);
+            return response.IsSuccessStatusCode;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    public async Task<bool> AtualizarComFotoAsync(int id, ProdutoDto produto, IFormFile foto)
+    {
+        try
+        {
+            var formData = new MultipartFormDataContent();
+            AddProdutoToFormData(formData, produto);
+            formData.Add(new StringContent(id.ToString()), "Id");
+            
+            if (foto != null && foto.Length > 0)
+            {
+                var fileContent = new StreamContent(foto.OpenReadStream());
+                fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(foto.ContentType);
+                formData.Add(fileContent, "Foto", foto.FileName);
+            }
+
+            var response = await _httpClient.PutAsync($"produtos/{id}", formData);
+            return response.IsSuccessStatusCode;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    public async Task<bool> ExcluirAsync(int id)
+    {
+        return await DeleteAsync($"produtos/{id}");
+    }
+
+    private void AddProdutoToFormData(MultipartFormDataContent formData, ProdutoDto produto)
+    {
+        formData.Add(new StringContent(produto.CategoriaId.ToString()), "CategoriaId");
+        formData.Add(new StringContent(produto.Nome ?? ""), "Nome");
+        formData.Add(new StringContent(produto.Descricao ?? ""), "Descricao");
+        formData.Add(new StringContent(produto.Qtde.ToString()), "Qtde");
+        formData.Add(new StringContent(produto.ValorCusto.ToString()), "ValorCusto");
+        formData.Add(new StringContent(produto.ValorVenda.ToString()), "ValorVenda");
+        formData.Add(new StringContent(produto.Destaque.ToString()), "Destaque");
+    }
+}
+
+
+
+58. Criar o Controller ProdutosController na pasta Controllers:
+using AutoMapper;
+using BlackCoffe.UI.DTOs;
+using BlackCoffe.UI.Services.Interfaces;
+using BlackCoffe.UI.ViewModels;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+
+namespace BlackCoffe.UI.Controllers;
+
+[Authorize(Roles = "Administrador")]
+public class ProdutosController : Controller
+{
+    private readonly IProdutoService _produtoService;
+    private readonly ICategoriaService _categoriaService;
+    private readonly IMapper _mapper;
+    private readonly ILogger<ProdutosController> _logger;
+
+    public ProdutosController(
+        IProdutoService produtoService,
+        ICategoriaService categoriaService,
+        IMapper mapper,
+        ILogger<ProdutosController> logger)
+    {
+        _produtoService = produtoService;
+        _categoriaService = categoriaService;
+        _mapper = mapper;
+        _logger = logger;
+    }
+
+    // GET: Produtos
+    public async Task<IActionResult> Index()
+    {
+        try
+        {
+            var produtos = await _produtoService.ObterTodosAsync();
+            var produtosVM = _mapper.Map<List<ProdutoVM>>(produtos);
+            return View(produtosVM);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Erro ao carregar produtos");
+            TempData["Erro"] = "Erro ao carregar produtos. Tente novamente.";
+            return View(new List<ProdutoVM>());
+        }
+    }
+
+    // GET: Produtos/Details/5
+    public async Task<IActionResult> Details(int id)
+    {
+        try
+        {
+            var produto = await _produtoService.ObterPorIdAsync(id);
+            if (produto == null)
+            {
+                TempData["Erro"] = "Produto não encontrado.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            var produtoVM = _mapper.Map<ProdutoVM>(produto);
+            return View(produtoVM);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Erro ao carregar produto {Id}", id);
+            TempData["Erro"] = "Erro ao carregar produto.";
+            return RedirectToAction(nameof(Index));
+        }
+    }
+
+    // GET: Produtos/Create
+    public async Task<IActionResult> Create()
+    {
+        await CarregarCategoriasViewBag();
+        return View();
+    }
+
+    // POST: Produtos/Create
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Create(ProdutoVM produtoVM)
+    {
+        if (!ModelState.IsValid)
+        {
+            await CarregarCategoriasViewBag();
+            return View(produtoVM);
+        }
+
+        try
+        {
+            var produtoDto = new ProdutoDto
+            {
+                CategoriaId = produtoVM.CategoriaId,
+                Nome = produtoVM.Nome,
+                Descricao = produtoVM.Descricao,
+                Qtde = produtoVM.Qtde,
+                ValorCusto = produtoVM.ValorCusto,
+                ValorVenda = produtoVM.ValorVenda,
+                Destaque = produtoVM.Destaque
+            };
+
+            bool success;
+
+            if (produtoVM.Foto != null && produtoVM.Foto.Length > 0)
+            {
+                success = await _produtoService.CriarComFotoAsync(produtoDto, produtoVM.Foto);
+            }
+            else
+            {
+                success = await _produtoService.CriarAsync(produtoDto);
+            }
+
+            if (success)
+            {
+                TempData["Sucesso"] = "Produto criado com sucesso!";
+                return RedirectToAction(nameof(Index));
+            }
+
+            ModelState.AddModelError("", "Erro ao criar produto.");
+            await CarregarCategoriasViewBag();
+            return View(produtoVM);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Erro ao criar produto");
+            ModelState.AddModelError("", "Erro interno ao criar produto.");
+            await CarregarCategoriasViewBag();
+            return View(produtoVM);
+        }
+    }
+
+    // GET: Produtos/Edit/5
+    public async Task<IActionResult> Edit(int id)
+    {
+        try
+        {
+            var produto = await _produtoService.ObterPorIdAsync(id);
+            if (produto == null)
+            {
+                TempData["Erro"] = "Produto não encontrado.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            var produtoVM = _mapper.Map<ProdutoVM>(produto);
+            await CarregarCategoriasViewBag();
+            return View(produtoVM);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Erro ao carregar produto para edição {Id}", id);
+            TempData["Erro"] = "Erro ao carregar produto.";
+            return RedirectToAction(nameof(Index));
+        }
+    }
+
+    // POST: Produtos/Edit/5
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Edit(int id, ProdutoVM produtoVM)
+    {
+        if (id != produtoVM.Id)
+        {
+            TempData["Erro"] = "Produto inválido.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        if (!ModelState.IsValid)
+        {
+            await CarregarCategoriasViewBag();
+            return View(produtoVM);
+        }
+
+        try
+        {
+            var produtoDto = new ProdutoDto
+            {
+                Id = produtoVM.Id,
+                CategoriaId = produtoVM.CategoriaId,
+                Nome = produtoVM.Nome,
+                Descricao = produtoVM.Descricao,
+                Qtde = produtoVM.Qtde,
+                ValorCusto = produtoVM.ValorCusto,
+                ValorVenda = produtoVM.ValorVenda,
+                Destaque = produtoVM.Destaque
+            };
+
+            bool success;
+
+            if (produtoVM.Foto != null && produtoVM.Foto.Length > 0)
+            {
+                success = await _produtoService.AtualizarComFotoAsync(id, produtoDto, produtoVM.Foto);
+            }
+            else
+            {
+                success = await _produtoService.AtualizarAsync(id, produtoDto);
+            }
+
+            if (success)
+            {
+                TempData["Sucesso"] = "Produto atualizado com sucesso!";
+                return RedirectToAction(nameof(Index));
+            }
+
+            ModelState.AddModelError("", "Erro ao atualizar produto.");
+            await CarregarCategoriasViewBag();
+            return View(produtoVM);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Erro ao atualizar produto {Id}", id);
+            ModelState.AddModelError("", "Erro interno ao atualizar produto.");
+            await CarregarCategoriasViewBag();
+            return View(produtoVM);
+        }
+    }
+
+    // GET: Produtos/Delete/5
+    public async Task<IActionResult> Delete(int id)
+    {
+        try
+        {
+            var produto = await _produtoService.ObterPorIdAsync(id);
+            if (produto == null)
+            {
+                TempData["Erro"] = "Produto não encontrado.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            var produtoVM = _mapper.Map<ProdutoVM>(produto);
+            return View(produtoVM);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Erro ao carregar produto para exclusão {Id}", id);
+            TempData["Erro"] = "Erro ao carregar produto.";
+            return RedirectToAction(nameof(Index));
+        }
+    }
+
+    // POST: Produtos/Delete/5
+    [HttpPost, ActionName("Delete")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeleteConfirmed(int id)
+    {
+        try
+        {
+            var success = await _produtoService.ExcluirAsync(id);
+
+            if (success)
+            {
+                TempData["Sucesso"] = "Produto excluído com sucesso!";
+            }
+            else
+            {
+                TempData["Erro"] = "Erro ao excluir produto.";
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Erro ao excluir produto {Id}", id);
+            TempData["Erro"] = "Erro interno ao excluir produto.";
+        }
+
+        return RedirectToAction(nameof(Index));
+    }
+
+    private async Task CarregarCategoriasViewBag()
+    {
+        try
+        {
+            var categorias = await _categoriaService.ObterTodasAsync();
+            ViewBag.Categorias = categorias;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Erro ao carregar categorias para ViewBag");
+            ViewBag.Categorias = new List<CategoriaDto>();
+        }
+    }
+}
+
+
+
+59. Registrar o Serviço no Program.cs:
+-- localize a linha // Serviços de API:
+// Serviços de API
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<ICategoriaService, CategoriaService>();
+builder.Services.AddScoped<IProdutoService, ProdutoService>();
+
+
+
+60.Atualizar o arquivo MappingConfig.cs:
+using AutoMapper;
+using BlackCoffe.UI.DTOs;
+using BlackCoffe.UI.ViewModels;
+
+namespace BlackCoffe.UI;
+
+public class MappingConfig : Profile
+{
+    public MappingConfig()
+    {
+        // Mapeamento para Categorias 
+        CreateMap<CategoriaDto, CategoriaVM>()
+            .ForMember(dest => dest.FotoUrl, opt => opt.MapFrom(src => src.Foto))
+            .ForMember(dest => dest.Foto, opt => opt.Ignore());
+
+        CreateMap<CategoriaVM, CategoriaDto>()
+            .ForMember(dest => dest.Foto, opt => opt.Ignore());
+
+        // Mapeamento para Produtos
+        CreateMap<ProdutoDto, ProdutoVM>()
+            .ForMember(dest => dest.FotoUrl, opt => opt.MapFrom(src => src.Foto))
+            .ForMember(dest => dest.Foto, opt => opt.Ignore());
+
+        CreateMap<ProdutoVM, ProdutoDto>()
+            .ForMember(dest => dest.Foto, opt => opt.Ignore());
+    }
+}
+
+
+
+61. Criar na pasta Views uma pasta Produtos e dentro um arquivo Index.cshtml:
+@model List<ProdutoVM>
+@{
+    ViewData["Title"] = "Produtos";
+    Layout = "~/Views/Shared/_LayoutAdmin.cshtml";
+    ViewData["Menu"] = "Produtos";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>@ViewData["Title"]</h1>
+    @if (User.IsInRole("Administrador"))
+    {
+        <a asp-action="Create" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Novo Produto
+        </a>
+    }
+</div>
+
+@if (TempData["Sucesso"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="fas fa-check-circle"></i> @TempData["Sucesso"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+@if (TempData["Erro"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="fas fa-exclamation-circle"></i> @TempData["Erro"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<div class="card">
+    <div class="card-header">
+        <h5 class="card-title mb-0">Lista de Produtos</h5>
+    </div>
+    <div class="card-body">
+        @if (Model.Any())
+        {
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>ID</th>
+                            <th>Foto</th>
+                            <th>Nome</th>
+                            <th>Categoria</th>
+                            <th>Estoque</th>
+                            <th>Valor Venda</th>
+                            <th>Destaque</th>
+                            <th class="text-center">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var produto in Model)
+                        {
+                            <tr>
+                                <td>@produto.Id</td>
+                                <td>
+                                    @if (!string.IsNullOrEmpty(produto.FotoUrl))
+                                    {
+                                        <img src="@produto.FotoUrl" alt="@produto.Nome" 
+                                             class="img-thumbnail-sm" style="width: 60px; height: 60px; object-fit: cover;">
+                                    }
+                                    else
+                                    {
+                                        <div class="bg-light rounded d-flex align-items-center justify-content-center" 
+                                             style="width: 60px; height: 60px;">
+                                            <i class="fas fa-image text-muted"></i>
+                                        </div>
+                                    }
+                                </td>
+                                <td>
+                                    <strong>@produto.Nome</strong>
+                                    @if (!string.IsNullOrEmpty(produto.Descricao))
+                                    {
+                                        <br>
+                                        <small class="text-muted text-truncate-2" style="max-width: 200px;">
+                                            @produto.Descricao
+                                        </small>
+                                    }
+                                </td>
+                                <td>@produto.CategoriaNome</td>
+                                <td>
+                                    <span class="badge @(produto.Qtde > 0 ? "bg-success" : "bg-danger")">
+                                        @produto.Qtde
+                                    </span>
+                                </td>
+                                <td>
+                                    <strong class="text-success">R$ @produto.ValorVenda.ToString("N2")</strong>
+                                    <br>
+                                    <small class="text-muted">Custo: R$ @produto.ValorCusto.ToString("N2")</small>
+                                </td>
+                                <td>
+                                    @if (produto.Destaque)
+                                    {
+                                        <span class="badge bg-warning text-dark">
+                                            <i class="fas fa-star"></i> Destaque
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">Normal</span>
+                                    }
+                                </td>
+                                <td class="text-center">
+                                    <div class="btn-group" role="group">
+                                        <a asp-action="Details" asp-route-id="@produto.Id" 
+                                           class="btn btn-info btn-sm" title="Detalhes">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        @if (User.IsInRole("Administrador"))
+                                        {
+                                            <a asp-action="Edit" asp-route-id="@produto.Id" 
+                                               class="btn btn-warning btn-sm" title="Editar">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <a asp-action="Delete" asp-route-id="@produto.Id" 
+                                               class="btn btn-danger btn-sm" title="Excluir">
+                                                <i class="fas fa-trash"></i>
+                                            </a>
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <div class="text-center py-4">
+                <i class="fas fa-boxes fa-3x text-muted mb-3"></i>
+                <h4>Nenhum produto encontrado</h4>
+                <p class="text-muted">Não há produtos cadastrados no sistema.</p>
+                @if (User.IsInRole("Administrador"))
+                {
+                    <a asp-action="Create" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Cadastrar Primeiro Produto
+                    </a>
+                }
+            </div>
+        }
+    </div>
+    @if (Model.Any())
+    {
+        <div class="card-footer">
+            <small class="text-muted">Total de @Model.Count produtos cadastrados</small>
+        </div>
+    }
+</div>
+
+
+
+62. Criar na pasta Views\Produtos um arquivo Details.cshtml:
+@model ProdutoVM
+@{
+    ViewData["Title"] = "Detalhes do Produto";
+    Layout = "~/Views/Shared/_LayoutAdmin.cshtml";
+    ViewData["Menu"] = "Produtos";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>@ViewData["Title"]</h1>
+    <div>
+        <a asp-action="Index" class="btn btn-secondary">Voltar</a>
+        @if (User.IsInRole("Administrador"))
+        {
+            <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">Editar</a>
+            <a asp-action="Delete" asp-route-id="@Model.Id" class="btn btn-danger">Excluir</a>
+        }
+    </div>
+</div>
+
+@if (TempData["Erro"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        @TempData["Erro"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<div class="row">
+    <div class="col-md-4">
+        @if (!string.IsNullOrEmpty(Model.FotoUrl))
+        {
+            <img src="@Model.FotoUrl" class="img-fluid rounded shadow" alt="@Model.Nome" />
+        }
+        else
+        {
+            <div class="bg-light rounded d-flex align-items-center justify-content-center" style="height: 300px;">
+                <i class="fas fa-image fa-5x text-muted"></i>
+            </div>
+        }
+    </div>
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-body">
+                <h3 class="card-title">@Model.Nome</h3>
+                <hr>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5>Informações Básicas:</h5>
+                        <table class="table table-sm table-borderless">
+                            <tr>
+                                <td class="fw-bold" style="width: 120px;">ID:</td>
+                                <td>@Model.Id</td>
+                            </tr>
+                            <tr>
+                                <td class="fw-bold">Categoria:</td>
+                                <td>@Model.CategoriaNome</td>
+                            </tr>
+                            <tr>
+                                <td class="fw-bold">Estoque:</td>
+                                <td>
+                                    <span class="badge @(Model.Qtde > 0 ? "bg-success" : "bg-danger")">
+                                        @Model.Qtde unidades
+                                    </span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="fw-bold">Status:</td>
+                                <td>
+                                    @if (Model.Destaque)
+                                    {
+                                        <span class="badge bg-warning text-dark">
+                                            <i class="fas fa-star"></i> Destaque
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">Normal</span>
+                                    }
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <h5>Valores:</h5>
+                        <table class="table table-sm table-borderless">
+                            <tr>
+                                <td class="fw-bold" style="width: 120px;">Custo:</td>
+                                <td class="text-muted">R$ @Model.ValorCusto.ToString("N2")</td>
+                            </tr>
+                            <tr>
+                                <td class="fw-bold">Venda:</td>
+                                <td class="text-success fw-bold">R$ @Model.ValorVenda.ToString("N2")</td>
+                            </tr>
+                            <tr>
+                                <td class="fw-bold">Margem:</td>
+                                <td class="@(Model.ValorVenda > Model.ValorCusto ? "text-success" : "text-danger")">
+                                    R$ @((Model.ValorVenda - Model.ValorCusto).ToString("N2"))
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+
+                @if (!string.IsNullOrEmpty(Model.Descricao))
+                {
+                    <div class="mt-3">
+                        <h5>Descrição:</h5>
+                        <p class="card-text">@Model.Descricao</p>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+63. Criar na pasta Views\Produtos um arquivo Create.cshtml:
+@model ProdutoVM
+@{
+    ViewData["Title"] = "Novo Produto";
+    Layout = "~/Views/Shared/_LayoutAdmin.cshtml";
+    ViewData["Menu"] = "Produtos";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>@ViewData["Title"]</h1>
+    <a asp-action="Index" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left"></i> Voltar para Lista
+    </a>
+</div>
+
+<div class="row">
+    <div class="col-md-10 mx-auto">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Preencha os dados do produto</h5>
+            </div>
+            <div class="card-body">
+                <form asp-action="Create" method="post" enctype="multipart/form-data" id="createForm">
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label asp-for="CategoriaId" class="form-label"></label>
+                                <select asp-for="CategoriaId" class="form-select" required>
+                                    <option value="">Selecione uma categoria</option>
+                                    @foreach (var categoria in ViewBag.Categorias)
+                                    {
+                                        <option value="@categoria.Id">@categoria.Nome</option>
+                                    }
+                                </select>
+                                <span asp-validation-for="CategoriaId" class="text-danger small"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label asp-for="Nome" class="form-label"></label>
+                                <input asp-for="Nome" class="form-control" placeholder="Digite o nome do produto" />
+                                <span asp-validation-for="Nome" class="text-danger small"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Descricao" class="form-label"></label>
+                        <textarea asp-for="Descricao" class="form-control" rows="3" placeholder="Descreva o produto..."></textarea>
+                        <span asp-validation-for="Descricao" class="text-danger small"></span>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label asp-for="Qtde" class="form-label"></label>
+                                <input asp-for="Qtde" type="number" class="form-control" min="0" value="0" />
+                                <span asp-validation-for="Qtde" class="text-danger small"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label asp-for="ValorCusto" class="form-label"></label>
+                                <input asp-for="ValorCusto" type="number" step="0.01" class="form-control" min="0" value="0" />
+                                <span asp-validation-for="ValorCusto" class="text-danger small"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label asp-for="ValorVenda" class="form-label"></label>
+                                <input asp-for="ValorVenda" type="number" step="0.01" class="form-control" min="0" value="0" />
+                                <span asp-validation-for="ValorVenda" class="text-danger small"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input asp-for="Destaque" class="form-check-input" type="checkbox" role="switch">
+                            <label asp-for="Destaque" class="form-check-label"></label>
+                        </div>
+                        <div class="form-text">Produtos em destaque terão maior visibilidade na loja.</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Foto" class="form-label"></label>
+                        <input asp-for="Foto" type="file" class="form-control" accept="image/*" id="fotoInput" />
+                        <span asp-validation-for="Foto" class="text-danger small"></span>
+                        <div class="form-text">
+                            Formatos suportados: JPG, PNG, GIF, WebP. Tamanho máximo: 5MB.
+                        </div>
+                    </div>
+
+                    <!-- Preview da imagem -->
+                    <div class="mb-3" id="imagePreviewContainer" style="display: none;">
+                        <label class="form-label">Preview da Imagem:</label>
+                        <div class="border rounded p-3 text-center">
+                            <img id="imagePreview" class="img-fluid rounded" style="max-height: 200px;" />
+                            <div class="mt-2">
+                                <button type="button" class="btn btn-sm btn-outline-danger" onclick="clearImage()">
+                                    <i class="fas fa-times"></i> Remover Imagem
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-4">
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <button type="submit" class="btn btn-success me-md-2">
+                                <i class="fas fa-save"></i> Criar Produto
+                            </button>
+                            <a asp-action="Index" class="btn btn-secondary">
+                                <i class="fas fa-times"></i> Cancelar
+                            </a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+    
+    <script>
+        // Preview da imagem selecionada
+        document.getElementById('fotoInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            const previewContainer = document.getElementById('imagePreviewContainer');
+            const preview = document.getElementById('imagePreview');
+            
+            if (file) {
+                // Validar tamanho do arquivo (5MB)
+                const fileSize = file.size / 1024 / 1024;
+                if (fileSize > 5) {
+                    alert('O arquivo é muito grande. Tamanho máximo permitido: 5MB');
+                    e.target.value = '';
+                    previewContainer.style.display = 'none';
+                    return;
+                }
+                
+                // Validar tipo do arquivo
+                const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+                if (!validTypes.includes(file.type)) {
+                    alert('Tipo de arquivo não suportado. Use apenas imagens JPG, PNG, GIF ou WebP.');
+                    e.target.value = '';
+                    previewContainer.style.display = 'none';
+                    return;
+                }
+                
+                // Mostrar preview
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    preview.src = e.target.result;
+                    previewContainer.style.display = 'block';
+                }
+                reader.readAsDataURL(file);
+            } else {
+                previewContainer.style.display = 'none';
+            }
+        });
+
+        // Limpar imagem selecionada
+        function clearImage() {
+            document.getElementById('fotoInput').value = '';
+            document.getElementById('imagePreviewContainer').style.display = 'none';
+        }
+
+        // Validação de valores
+        document.getElementById('createForm').addEventListener('submit', function(e) {
+            const valorCusto = parseFloat(document.getElementById('ValorCusto').value);
+            const valorVenda = parseFloat(document.getElementById('ValorVenda').value);
+            
+            if (valorVenda < valorCusto) {
+                e.preventDefault();
+                alert('O valor de venda não pode ser menor que o valor de custo.');
+                return;
+            }
+        });
+
+        // Foco automático no primeiro campo
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('Nome').focus();
+        });
+    </script>
+}
+
+
+
+64. Criar na pasta Views\Produtos um arquivo Edit.cshtml:
+@model ProdutoVM
+@{
+    ViewData["Title"] = "Editar Produto";
+    Layout = "~/Views/Shared/_LayoutAdmin.cshtml";
+    ViewData["Menu"] = "Produtos";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>@ViewData["Title"]</h1>
+    <a asp-action="Index" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left"></i> Voltar para Lista
+    </a>
+</div>
+
+<div class="row">
+    <div class="col-md-10 mx-auto">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Edite os dados do produto</h5>
+            </div>
+            <div class="card-body">
+                <form asp-action="Edit" method="post" enctype="multipart/form-data" id="editForm">
+                    <input type="hidden" asp-for="Id" />
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label asp-for="CategoriaId" class="form-label"></label>
+                                <select asp-for="CategoriaId" class="form-select" required>
+                                    <option value="">Selecione uma categoria</option>
+                                    @foreach (var categoria in ViewBag.Categorias)
+                                    {
+                                        <option value="@categoria.Id">@categoria.Nome</option>
+                                    }
+                                </select>
+                                <span asp-validation-for="CategoriaId" class="text-danger small"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label asp-for="Nome" class="form-label"></label>
+                                <input asp-for="Nome" class="form-control" placeholder="Digite o nome do produto" />
+                                <span asp-validation-for="Nome" class="text-danger small"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Descricao" class="form-label"></label>
+                        <textarea asp-for="Descricao" class="form-control" rows="3" placeholder="Descreva o produto..."></textarea>
+                        <span asp-validation-for="Descricao" class="text-danger small"></span>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label asp-for="Qtde" class="form-label"></label>
+                                <input asp-for="Qtde" type="number" class="form-control" min="0" />
+                                <span asp-validation-for="Qtde" class="text-danger small"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label asp-for="ValorCusto" class="form-label"></label>
+                                <input asp-for="ValorCusto" type="number" step="0.01" class="form-control" min="0" />
+                                <span asp-validation-for="ValorCusto" class="text-danger small"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label asp-for="ValorVenda" class="form-label"></label>
+                                <input asp-for="ValorVenda" type="number" step="0.01" class="form-control" min="0" />
+                                <span asp-validation-for="ValorVenda" class="text-danger small"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input asp-for="Destaque" class="form-check-input" type="checkbox" role="switch">
+                            <label asp-for="Destaque" class="form-check-label"></label>
+                        </div>
+                        <div class="form-text">Produtos em destaque terão maior visibilidade na loja.</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Foto" class="form-label"></label>
+                        <input asp-for="Foto" type="file" class="form-control" accept="image/*" id="fotoInput" />
+                        <span asp-validation-for="Foto" class="text-danger small"></span>
+                        <div class="form-text">
+                            Deixe em branco para manter a foto atual. Formatos suportados: JPG, PNG, GIF, WebP. Tamanho máximo: 5MB.
+                        </div>
+                    </div>
+
+                    <!-- Preview da imagem atual -->
+                    @if (!string.IsNullOrEmpty(Model.FotoUrl))
+                    {
+                        <div class="mb-3">
+                            <label class="form-label">Foto Atual:</label>
+                            <div class="border rounded p-3 text-center">
+                                <img src="@Model.FotoUrl" class="img-fluid rounded" style="max-height: 200px;" alt="Foto atual do produto" />
+                                <div class="mt-2">
+                                    <small class="text-muted">Esta é a foto atual do produto</small>
+                                </div>
+                            </div>
+                        </div>
+                    }
+
+                    <!-- Preview da nova imagem -->
+                    <div class="mb-3" id="imagePreviewContainer" style="display: none;">
+                        <label class="form-label">Preview da Nova Imagem:</label>
+                        <div class="border rounded p-3 text-center">
+                            <img id="imagePreview" class="img-fluid rounded" style="max-height: 200px;" />
+                            <div class="mt-2">
+                                <button type="button" class="btn btn-sm btn-outline-danger" onclick="clearImage()">
+                                    <i class="fas fa-times"></i> Remover Nova Imagem
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-4">
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <button type="submit" class="btn btn-warning me-md-2">
+                                <i class="fas fa-save"></i> Atualizar Produto
+                            </button>
+                            <a asp-action="Index" class="btn btn-secondary">
+                                <i class="fas fa-times"></i> Cancelar
+                            </a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+    
+    <script>
+        // Preview da imagem selecionada
+        document.getElementById('fotoInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            const previewContainer = document.getElementById('imagePreviewContainer');
+            const preview = document.getElementById('imagePreview');
+            
+            if (file) {
+                // Validar tamanho do arquivo (5MB)
+                const fileSize = file.size / 1024 / 1024;
+                if (fileSize > 5) {
+                    alert('O arquivo é muito grande. Tamanho máximo permitido: 5MB');
+                    e.target.value = '';
+                    previewContainer.style.display = 'none';
+                    return;
+                }
+                
+                // Validar tipo do arquivo
+                const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+                if (!validTypes.includes(file.type)) {
+                    alert('Tipo de arquivo não suportado. Use apenas imagens JPG, PNG, GIF ou WebP.');
+                    e.target.value = '';
+                    previewContainer.style.display = 'none';
+                    return;
+                }
+                
+                // Mostrar preview
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    preview.src = e.target.result;
+                    previewContainer.style.display = 'block';
+                }
+                reader.readAsDataURL(file);
+            } else {
+                previewContainer.style.display = 'none';
+            }
+        });
+
+        // Limpar imagem selecionada
+        function clearImage() {
+            document.getElementById('fotoInput').value = '';
+            document.getElementById('imagePreviewContainer').style.display = 'none';
+        }
+
+        // Validação de valores
+        document.getElementById('editForm').addEventListener('submit', function(e) {
+            const valorCusto = parseFloat(document.getElementById('ValorCusto').value);
+            const valorVenda = parseFloat(document.getElementById('ValorVenda').value);
+            
+            if (valorVenda < valorCusto) {
+                e.preventDefault();
+                alert('O valor de venda não pode ser menor que o valor de custo.');
+                return;
+            }
+        });
+
+        // Foco automático no primeiro campo
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('Nome').focus();
+            document.getElementById('Nome').select();
+        });
+    </script>
+}
+
+
+
+65. Criar na pasta Views\Produtos um arquivo Delete.cshtml:
+@model ProdutoVM
+@{
+    ViewData["Title"] = "Excluir Produto";
+    Layout = "~/Views/Shared/_LayoutAdmin.cshtml";
+    ViewData["Menu"] = "Produtos";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>@ViewData["Title"]</h1>
+    <a asp-action="Index" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left"></i> Voltar para Lista
+    </a>
+</div>
+
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <div class="card border-danger">
+            <div class="card-header bg-danger text-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-exclamation-triangle"></i> Confirmação de Exclusão
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-warning" role="alert">
+                    <h5 class="alert-heading">
+                        <i class="fas fa-exclamation-circle"></i> Atenção!
+                    </h5>
+                    <p class="mb-0">
+                        Você está prestes a excluir o produto <strong>"@Model.Nome"</strong>. 
+                        Esta ação <strong>não pode ser desfeita</strong>.
+                    </p>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-4">
+                        <!-- Foto do produto -->
+                        @if (!string.IsNullOrEmpty(Model.FotoUrl))
+                        {
+                            <div class="text-center mb-3">
+                                <img src="@Model.FotoUrl" class="img-fluid rounded" style="max-height: 200px;" alt="@Model.Nome" />
+                                <small class="text-muted">Foto do produto</small>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="text-center mb-3">
+                                <div class="bg-light rounded d-flex align-items-center justify-content-center" style="height: 200px;">
+                                    <i class="fas fa-image fa-3x text-muted"></i>
+                                </div>
+                                <small class="text-muted">Nenhuma foto</small>
+                            </div>
+                        }
+                    </div>
+                    <div class="col-md-8">
+                        <!-- Detalhes do produto -->
+                        <div class="mb-3">
+                            <h6>Detalhes do Produto:</h6>
+                            <table class="table table-sm table-borderless">
+                                <tr>
+                                    <td class="fw-bold" style="width: 120px;">ID:</td>
+                                    <td>@Model.Id</td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold">Nome:</td>
+                                    <td>@Model.Nome</td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold">Categoria:</td>
+                                    <td>@Model.CategoriaNome</td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold">Estoque:</td>
+                                    <td>@Model.Qtde unidades</td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold">Valor Venda:</td>
+                                    <td class="text-success">R$ @Model.ValorVenda.ToString("N2")</td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold">Status:</td>
+                                    <td>
+                                        @if (Model.Destaque)
+                                        {
+                                            <span class="badge bg-warning text-dark">Destaque</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary">Normal</span>
+                                        }
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(Model.Descricao))
+                        {
+                            <div class="mb-3">
+                                <h6>Descrição:</h6>
+                                <p class="small text-muted">@Model.Descricao</p>
+                            </div>
+                        }
+
+                        <!-- Aviso adicional -->
+                        <div class="alert alert-info">
+                            <h6 class="alert-heading">
+                                <i class="fas fa-info-circle"></i> Informação Importante
+                            </h6>
+                            <p class="mb-0 small">
+                                Ao excluir este produto, a foto associada também será removida do servidor.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <form asp-action="Delete" method="post" id="deleteForm">
+                    <input type="hidden" asp-for="Id" />
+                    
+                    <div class="mt-4">
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <button type="submit" class="btn btn-danger me-md-2" id="btnDelete">
+                                <i class="fas fa-trash"></i> Confirmar Exclusão
+                            </button>
+                            <a asp-action="Index" class="btn btn-secondary">
+                                <i class="fas fa-times"></i> Cancelar
+                            </a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Confirmação adicional antes de excluir
+        document.getElementById('deleteForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            Swal.fire({
+                title: 'Tem certeza?',
+                text: "Você realmente deseja excluir o produto '@Model.Nome'? Esta ação não pode ser desfeita!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Sim, excluir!',
+                cancelButtonText: 'Cancelar',
+                reverseButtons: true
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Desabilita o botão para evitar múltiplos cliques
+                    const btn = document.getElementById('btnDelete');
+                    btn.disabled = true;
+                    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Excluindo...';
+                    
+                    // Submete o formulário
+                    e.target.submit();
+                }
+            });
+        });
+    </script>
+}
+
+
+
+66.Criar a interface ILojaService na pasta \Services\Interfaces:
+using BlackCoffe.UI.DTOs;
+
+namespace BlackCoffe.UI.Services.Interfaces;
+
+public interface ILojaService
+{
+    Task<List<CategoriaDto>> ObterCategoriasAtivasAsync();
+    Task<List<ProdutoDto>> ObterProdutosDestaqueAsync();
+    Task<List<ProdutoDto>> ObterTodosProdutosAsync();
+    Task<List<ProdutoDto>> ObterProdutosPorCategoriaAsync(int categoriaId);
+    Task<ProdutoDto> ObterProdutoPorIdAsync(int id);
+}
+
+
+
+67. Criar a interface LojaService na pasta \Services\Implementations:
+using BlackCoffe.UI.DTOs;
+using BlackCoffe.UI.Models;
+using BlackCoffe.UI.Services.Interfaces;
+using Microsoft.Extensions.Options;
+
+namespace BlackCoffe.UI.Services.Implementations;
+
+public class LojaService : BaseApiService, ILojaService
+{
+    public LojaService(
+        HttpClient httpClient,
+        IOptions<ApiSettings> apiSettings,
+        IHttpContextAccessor httpContextAccessor)
+        : base(httpClient, apiSettings, httpContextAccessor)
+    {
+    }
+
+    public async Task<List<CategoriaDto>> ObterCategoriasAtivasAsync()
+    {
+        return await GetAsync<List<CategoriaDto>>("categorias");
+    }
+
+    public async Task<List<ProdutoDto>> ObterProdutosDestaqueAsync()
+    {
+        return await GetAsync<List<ProdutoDto>>("produtos/destaque");
+    }
+
+    public async Task<List<ProdutoDto>> ObterTodosProdutosAsync()
+    {
+        return await GetAsync<List<ProdutoDto>>("produtos");
+    }
+
+    public async Task<List<ProdutoDto>> ObterProdutosPorCategoriaAsync(int categoriaId)
+    {
+        return await GetAsync<List<ProdutoDto>>($"produtos/categoria/{categoriaId}");
+    }
+
+    public async Task<ProdutoDto> ObterProdutoPorIdAsync(int id)
+    {
+        return await GetAsync<ProdutoDto>($"produtos/{id}");
+    }
+}
+
+
+68. Registrar o Serviço no Program.cs:
+-- localize a linha // Serviços de API:
+// Serviços de API
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<ICategoriaService, CategoriaService>();
+builder.Services.AddScoped<IProdutoService, ProdutoService>();
+builder.Services.AddScoped<ILojaService, LojaService>();
+
+
+
+69. Criar na pasta ViewModels a classe HomeVM:
+using BlackCoffe.UI.DTOs;
+
+namespace BlackCoffe.UI.ViewModels;
+
+public class HomeVM
+{
+    public List<CategoriaDto> Categorias { get; set; } = new();
+    public List<ProdutoDto> ProdutosDestaque { get; set; } = new();
+}
+
+
+
+70. Atualizar o Controller HomeController:
+using System.Diagnostics;
+using BlackCoffe.UI.DTOs;
+using BlackCoffe.UI.Models;
+using BlackCoffe.UI.Services.Interfaces;
+using BlackCoffe.UI.ViewModels;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+
+namespace BlackCoffe.UI.Controllers;
+
+public class HomeController : Controller
+{
+    private readonly ILogger<HomeController> _logger;
+    private readonly ILojaService _lojaService;
+
+    public HomeController(ILogger<HomeController> logger, ILojaService lojaService)
+    {
+        _logger = logger;
+        _lojaService = lojaService;
+    }
+
+    // GET: Home/Index - Página inicial
+    public async Task<IActionResult> Index()
+    {
+        try
+        {
+            var categorias = await _lojaService.ObterCategoriasAtivasAsync();
+            var produtosDestaque = await _lojaService.ObterProdutosDestaqueAsync();
+            
+            var viewModel = new HomeVM
+            {
+                Categorias = categorias,
+                ProdutosDestaque = produtosDestaque
+            };
+
+            return View(viewModel);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Erro ao carregar página inicial");
+            return View(new HomeVM());
+        }
+    }
+
+    // GET: Home/Produtos - Lista de produtos
+    public async Task<IActionResult> Produtos(int? categoriaId)
+    {
+        try
+        {
+            ViewBag.Categorias = await _lojaService.ObterCategoriasAtivasAsync();
+            
+            List<ProdutoDto> produtos;
+            if (categoriaId.HasValue && categoriaId > 0)
+            {
+                produtos = await _lojaService.ObterProdutosPorCategoriaAsync(categoriaId.Value);
+                ViewBag.CategoriaSelecionada = categoriaId.Value;
+            }
+            else
+            {
+                produtos = await _lojaService.ObterTodosProdutosAsync();
+                ViewBag.CategoriaSelecionada = 0;
+            }
+
+            return View(produtos);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Erro ao carregar produtos da loja");
+            TempData["Erro"] = "Erro ao carregar produtos. Tente novamente.";
+            return View(new List<ProdutoDto>());
+        }
+    }
+
+    // GET: Home/Detalhes/5 - Detalhes do produto
+    public async Task<IActionResult> Detalhes(int id)
+    {
+        try
+        {
+            var produto = await _lojaService.ObterProdutoPorIdAsync(id);
+            if (produto == null)
+            {
+                TempData["Erro"] = "Produto não encontrado.";
+                return RedirectToAction("Produtos");
+            }
+
+            return View(produto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Erro ao carregar detalhes do produto {Id}", id);
+            TempData["Erro"] = "Erro ao carregar produto.";
+            return RedirectToAction("Produtos");
+        }
+    }
+
+    [Authorize]
+    public IActionResult Privacy()
+    {
+        return View();
+    }
+
+    [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
+    public IActionResult Error()
+    {
+        return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
+    }
+}
+
+
+
+71. Atualizar o _Layout.cshtml:
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BlackCoffe - @ViewData["Title"]</title>
+    <script type="importmap"></script>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/BlackCoffe.UI.styles.css" asp-append-version="true" />
+    @await RenderSectionAsync("Styles", required: false)
+</head>
+
+<body class="min-vh-100">
+    <header class="d-block">
+        <nav class="navbar navbar-expand-lg navbar-dark bg-dark border-bottom box-shadow mb-3">
+            <div class="container-fluid">
+                <a class="navbar-brand fw-bold fs-3" asp-action="Index">
+                    <i class="fas fa-store me-2"></i>BlackCoffe
+                </a>
+
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain"
+                    aria-controls="navbarMain" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <div class="collapse navbar-collapse" id="navbarMain">
+                    <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                        <li class="nav-item">
+                            <a class="nav-link active" asp-action="Index" asp-controller="Home">
+                                <i class="fas fa-home me-1"></i>Home
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" asp-action="Produtos" asp-controller="Home">
+                                <i class="fas fa-shopping-bag me-1"></i>Produtos
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" asp-action="Privacy" asp-controller="Home">
+                                <i class="fas fa-shield-alt me-1"></i>Privacidade
+                            </a>
+                        </li>
+                    </ul>
+
+                    <div class="d-flex align-items-center">
+                        <partial name="_LoginPartial" />
+                    </div>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main role="main" class="container-fluid d-flex flex-column">
+        @RenderBody()
+    </main>
+
+    <footer class="border-top footer text-muted">
+        <div class="container">
+            &copy; 2025 - BlackCoffe - <a asp-controller="Home" asp-action="Privacy">Privacy</a>
+        </div>
+    </footer>
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+
+</html>
+
+
+
+72. Adicionar ao FINAL do arquivo wwwroot\css\site.css:
+/* Estilos específicos para a loja */
+.hero-section {
+    background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
+}
+
+.product-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.product-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15) !important;
+}
+
+.text-truncate-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.card-img-top {
+    border-radius: 0.375rem 0.375rem 0 0;
+}
+
+/* Badge de estoque */
+.badge.bg-success {
+    background-color: #198754 !important;
+}
+
+.badge.bg-danger {
+    background-color: #dc3545 !important;
+}
+
+/* Navbar brand */
+.navbar-brand {
+    font-size: 1.5rem;
+}
+
+/* Hero section com fundo fixo */
+.bg-primary {
+    background-color: #0d6efd !important;
+}
+
+/* Cards de produtos */
+.card {
+    transition: transform 0.2s ease-in-out;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+}
+
+/* Text truncate utilitário */
+.text-truncate-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* Botões arredondados */
+.btn-rounded {
+    border-radius: 50px;
+}
+
+/* Espaçamentos consistentes */
+.section-spacing {
+    margin: 3rem 0;
+}
+
+/* Imagens responsivas */
+.card-img-top {
+    object-fit: cover;
+}
+
+/* Badges */
+.badge {
+    font-weight: 500;
+}
+
+
+
+73. Alterar o arquivo Views\Home\Index.cshtml:
+@model BlackCoffe.UI.ViewModels.HomeVM
+@{
+    ViewData["Title"] = "BlackCoffe - Sua Loja Virtual";
+}
+
+<!-- Hero Section -->
+<section class="bg-primary text-white py-5 mb-5 rounded-5">
+    <div class="container">
+        <div class="row align-items-center py-5">
+            <div class="col-lg-8">
+                <h1 class="display-4 fw-bold mb-3">Bem-vindo à BlackCoffe</h1>
+                <p class="lead mb-4">Encontre os melhores produtos com os preços mais competitivos do mercado.</p>
+                <div class="d-flex flex-wrap gap-3">
+                    <a asp-action="Produtos" class="btn btn-light btn-lg px-4">
+                        <i class="fas fa-shopping-bag me-2"></i>Ver Todos os Produtos
+                    </a>
+                    <a href="#produtos-destaque" class="btn btn-outline-light btn-lg px-4">
+                        <i class="fas fa-star me-2"></i>Ver Destaques
+                    </a>
+                </div>
+            </div>
+            <div class="col-lg-4 text-center d-none d-lg-block">
+                <i class="fas fa-store fa-8x text-white-50"></i>
+            </div>
+        </div>
+    </div>
+</section>
+
+<div class="container pb-5">
+    <!-- Categorias -->
+    <section class="mb-5">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="fw-bold">Navegue por Categorias</h2>
+            <a asp-action="Produtos" class="btn btn-outline-primary btn-sm">
+                Ver Todas <i class="fas fa-arrow-right ms-1"></i>
+            </a>
+        </div>
+
+        @if (Model.Categorias.Any())
+        {
+            <div class="row g-3 justify-content-center">
+                @foreach (var categoria in Model.Categorias)
+                {
+                    <div class="col-auto" >
+                        <a asp-action="Produtos" asp-route-categoriaId="@categoria.Id" 
+                           class="btn text-white rounded-pill px-4 py-2" style="background-color: @categoria.Cor;">
+                            @categoria.Nome
+                        </a>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="text-center py-4">
+                <i class="fas fa-folder-open fa-3x text-muted mb-3"></i>
+                <h4 class="text-muted">Nenhuma categoria disponível</h4>
+                <p class="text-muted">Em breve teremos novidades!</p>
+            </div>
+        }
+    </section>
+
+    <!-- Separador -->
+    <div class="my-5 py-3 text-center">
+        <div class="d-flex align-items-center justify-content-center">
+            <div class="flex-grow-1 border-top"></div>
+            <div class="px-3">
+                <i class="fas fa-star text-warning fa-lg"></i>
+            </div>
+            <div class="flex-grow-1 border-top"></div>
+        </div>
+    </div>
+
+    <!-- Produtos em Destaque -->
+    <section id="produtos-destaque" class="mb-5">
+        <div class="text-center mb-5">
+            <h2 class="fw-bold display-5">Produtos em Destaque</h2>
+            <p class="lead text-muted">Confira nossos produtos mais populares</p>
+        </div>
+
+        @if (Model.ProdutosDestaque.Any())
+        {
+            <div class="row g-4">
+                @foreach (var produto in Model.ProdutosDestaque)
+                {
+                    <div class="col-md-6 col-lg-4 col-xl-3">
+                        <div class="card h-100 shadow-sm border-0">
+                            <div class="position-relative">
+                                @if (!string.IsNullOrEmpty(produto.Foto))
+                                {
+                                    <img src="@produto.Foto" alt="@produto.Nome" class="card-img-top" style="height: 200px; object-fit: cover;">
+                                }
+                                else
+                                {
+                                    <div class="bg-light d-flex align-items-center justify-content-center" style="height: 200px;">
+                                        <i class="fas fa-image fa-3x text-muted"></i>
+                                    </div>
+                                }
+                                
+                                @if (produto.Destaque)
+                                {
+                                    <div class="position-absolute top-0 end-0 m-2">
+                                        <span class="badge bg-warning text-dark">
+                                            <i class="fas fa-star me-1"></i>Destaque
+                                        </span>
+                                    </div>
+                                }
+                                
+                                <div class="position-absolute top-0 start-0 m-2">
+                                    <span class="badge @(produto.Qtde > 0 ? "bg-success" : "bg-danger")">
+                                        @produto.Qtde
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            <div class="card-body d-flex flex-column">
+                                <h6 class="card-title fw-bold">@produto.Nome</h6>
+                                <small class="text-muted mb-2">@produto.CategoriaNome</small>
+                                
+                                @if (!string.IsNullOrEmpty(produto.Descricao))
+                                {
+                                    <p class="card-text small text-muted flex-grow-1">
+                                        @produto.Descricao
+                                    </p>
+                                }
+                                
+                                <div class="mt-auto pt-3">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <span class="h5 text-success fw-bold mb-0">
+                                            R$ @produto.ValorVenda.ToString("N2")
+                                        </span>
+                                        @if (produto.ValorCusto > 0)
+                                        {
+                                            <small class="text-muted text-decoration-line-through">
+                                                R$ @produto.ValorCusto.ToString("N2")
+                                            </small>
+                                        }
+                                    </div>
+                                    <a asp-action="Detalhes" asp-route-id="@produto.Id" class="btn btn-primary w-100">
+                                        <i class="fas fa-eye me-1"></i>Ver Detalhes
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+            
+            <div class="text-center mt-5 pt-3">
+                <a asp-action="Produtos" class="btn btn-outline-primary btn-lg px-5">
+                    <i class="fas fa-shopping-bag me-2"></i>Ver Todos os Produtos
+                </a>
+            </div>
+        }
+        else
+        {
+            <div class="text-center py-5">
+                <i class="fas fa-box-open fa-4x text-muted mb-3"></i>
+                <h4 class="text-muted">Nenhum produto em destaque</h4>
+                <p class="text-muted mb-4">Volte em breve para conferir nossas ofertas!</p>
+                <a asp-action="Produtos" class="btn btn-primary">
+                    <i class="fas fa-store me-2"></i>Explorar Loja
+                </a>
+            </div>
+        }
+    </section>
+
+    <!-- Espaçamento extra -->
+    <div class="my-5 py-5"></div>
+
+    <!-- Features -->
+    <section class="row g-4 mb-5">
+        <div class="col-md-4">
+            <div class="text-center p-4">
+                <div class="bg-primary bg-opacity-50 rounded-circle d-inline-flex align-items-center justify-content-center mb-4" style="width: 100px; height: 100px;">
+                    <i class="fas fa-shipping-fast fa-2x text-primary"></i>
+                </div>
+                <h5 class="fw-bold">Entrega Rápida</h5>
+                <p class="text-muted">Entregamos em todo o país com agilidade e segurança.</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="text-center p-4">
+                <div class="bg-success bg-opacity-50 rounded-circle d-inline-flex align-items-center justify-content-center mb-4" style="width: 100px; height: 100px;">
+                    <i class="fas fa-shield-alt fa-2x text-success"></i>
+                </div>
+                <h5 class="fw-bold">Compra Segura</h5>
+                <p class="text-muted">Seus dados protegidos com criptografia de ponta a ponta.</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="text-center p-4">
+                <div class="bg-warning bg-opacity-50 rounded-circle d-inline-flex align-items-center justify-content-center mb-4" style="width: 100px; height: 100px;">
+                    <i class="fas fa-headset fa-2x text-warning"></i>
+                </div>
+                <h5 class="fw-bold">Suporte 24/7</h5>
+                <p class="text-muted">Nossa equipe está sempre pronta para te ajudar.</p>
+            </div>
+        </div>
+    </section>
+</div>
+
+
+
+74. Criar na pasta Views\Home\ o arquivo Produtos.cshtml:
+@model List<BlackCoffe.UI.DTOs.ProdutoDto>
+@{
+    ViewData["Title"] = "Nossos Produtos";
+}
+
+<div class="container py-4">
+    <div class="row">
+        <!-- Filtros -->
+        <div class="col-lg-3 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-filter me-2"></i>Filtros
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <h6 class="fw-bold mb-3">Categorias</h6>
+                    <div class="list-group list-group-flush">
+                        <a asp-action="Produtos" 
+                           class="list-group-item list-group-item-action @(ViewBag.CategoriaSelecionada == 0 ? "active" : "")">
+                            Todas as Categorias
+                        </a>
+                        @foreach (var categoria in ViewBag.Categorias)
+                        {
+                            <a asp-action="Produtos" asp-route-categoriaId="@categoria.Id"
+                               class="list-group-item list-group-item-action @(ViewBag.CategoriaSelecionada == categoria.Id ? "active" : "")">
+                                @categoria.Nome
+                            </a>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lista de Produtos -->
+        <div class="col-lg-9">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 fw-bold">Nossos Produtos</h1>
+                <small class="text-muted">@Model.Count produtos encontrados</small>
+            </div>
+
+            @if (TempData["Erro"] != null)
+            {
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="fas fa-exclamation-circle"></i> @TempData["Erro"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            }
+
+            @if (Model.Any())
+            {
+                <div class="row g-4">
+                    @foreach (var produto in Model)
+                    {
+                        <div class="col-md-6 col-xl-4">
+                            <div class="card h-100 shadow-sm border-0">
+                                <div class="position-relative">
+                                    @if (!string.IsNullOrEmpty(produto.Foto))
+                                    {
+                                        <img src="@produto.Foto" alt="@produto.Nome" 
+                                             class="card-img-top" style="height: 200px; object-fit: cover;">
+                                    }
+                                    else
+                                    {
+                                        <div class="bg-light d-flex align-items-center justify-content-center" 
+                                             style="height: 200px;">
+                                            <i class="fas fa-image fa-3x text-muted"></i>
+                                        </div>
+                                    }
+                                    
+                                    @if (produto.Destaque)
+                                    {
+                                        <div class="position-absolute top-0 start-0 m-2">
+                                            <span class="badge bg-warning text-dark">
+                                                <i class="fas fa-star me-1"></i>Destaque
+                                            </span>
+                                        </div>
+                                    }
+
+                                    <div class="position-absolute top-0 end-0 m-2">
+                                        <span class="badge @(produto.Qtde > 0 ? "bg-success" : "bg-danger")">
+                                            @produto.Qtde
+                                        </span>
+                                    </div>
+                                </div>
+                                
+                                <div class="card-body d-flex flex-column">
+                                    <h6 class="card-title fw-bold">@produto.Nome</h6>
+                                    <small class="text-muted mb-2">@produto.CategoriaNome</small>
+                                    
+                                    @if (!string.IsNullOrEmpty(produto.Descricao))
+                                    {
+                                        <p class="card-text small text-muted flex-grow-1">
+                                            @produto.Descricao
+                                        </p>
+                                    }
+                                    
+                                    <div class="mt-auto pt-3">
+                                        <div class="d-flex justify-content-between align-items-center mb-3">
+                                            <span class="h5 text-success fw-bold mb-0">
+                                                R$ @produto.ValorVenda.ToString("N2")
+                                            </span>
+                                            @if (produto.ValorCusto > 0 && produto.ValorVenda > produto.ValorCusto)
+                                            {
+                                                <small class="text-muted text-decoration-line-through">
+                                                    R$ @produto.ValorCusto.ToString("N2")
+                                                </small>
+                                            }
+                                        </div>
+                                        <a asp-action="Detalhes" asp-route-id="@produto.Id" 
+                                           class="btn btn-primary btn-sm w-100">
+                                            <i class="fas fa-eye me-1"></i>Ver Detalhes
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="text-center py-5">
+                    <i class="fas fa-search fa-4x text-muted mb-3"></i>
+                    <h4 class="text-muted">Nenhum produto encontrado</h4>
+                    <p class="text-muted">Tente alterar os filtros ou volte mais tarde.</p>
+                    <a asp-action="Produtos" class="btn btn-primary">
+                        <i class="fas fa-redo me-1"></i>Ver Todos os Produtos
+                    </a>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+
+
+75. Criar na pasta Views\Home\ o arquivo Produtos.cshtml:
+@model BlackCoffe.UI.DTOs.ProdutoDto
+@{
+    ViewData["Title"] = Model.Nome;
+}
+
+<div class="container py-4">
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-action="Index">Home</a></li>
+            <li class="breadcrumb-item"><a asp-action="Produtos">Produtos</a></li>
+            <li class="breadcrumb-item active">@Model.Nome</li>
+        </ol>
+    </nav>
+
+    @if (TempData["Erro"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-circle"></i> @TempData["Erro"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <div class="row">
+        <!-- Imagem do Produto -->
+        <div class="col-md-6 mb-4">
+            @if (!string.IsNullOrEmpty(Model.Foto))
+            {
+                <img src="@Model.Foto" alt="@Model.Nome" class="img-fluid rounded shadow">
+            }
+            else
+            {
+                <div class="bg-light rounded d-flex align-items-center justify-content-center" style="height: 400px;">
+                    <i class="fas fa-image fa-5x text-muted"></i>
+                </div>
+            }
+        </div>
+
+        <!-- Informações do Produto -->
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <!-- Categoria e Status -->
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <span class="badge bg-secondary">@Model.CategoriaNome</span>
+                        @if (Model.Destaque)
+                        {
+                            <span class="badge bg-warning text-dark">
+                                <i class="fas fa-star me-1"></i>Destaque
+                            </span>
+                        }
+                    </div>
+
+                    <h1 class="h2 fw-bold mb-3">@Model.Nome</h1>
+
+                    <!-- Preço -->
+                    <div class="mb-4">
+                        <span class="h3 text-success fw-bold">R$ @Model.ValorVenda.ToString("N2")</span>
+                        @if (Model.ValorCusto > 0)
+                        {
+                            <small class="text-muted d-block">
+                                Custo: R$ @Model.ValorCusto.ToString("N2") | 
+                                Margem: R$ @((Model.ValorVenda - Model.ValorCusto).ToString("N2"))
+                            </small>
+                        }
+                    </div>
+
+                    <!-- Estoque -->
+                    <div class="mb-4">
+                        <span class="badge @(Model.Qtde > 0 ? "bg-success" : "bg-danger") fs-6">
+                            @(Model.Qtde > 0 ? $"{Model.Qtde} unidades em estoque" : "Fora de estoque")
+                        </span>
+                    </div>
+
+                    <!-- Descrição -->
+                    @if (!string.IsNullOrEmpty(Model.Descricao))
+                    {
+                        <div class="mb-4">
+                            <h5 class="fw-bold">Descrição</h5>
+                            <p class="text-muted">@Model.Descricao</p>
+                        </div>
+                    }
+
+                    <!-- Ações -->
+                    <div class="d-grid gap-2">
+                        @if (Model.Qtde > 0)
+                        {
+                            <button class="btn btn-primary btn-lg">
+                                <i class="fas fa-shopping-cart me-2"></i>Adicionar ao Carrinho
+                            </button>
+                        }
+                        else
+                        {
+                            <button class="btn btn-secondary btn-lg" disabled>
+                                <i class="fas fa-times me-2"></i>Produto Indisponível
+                            </button>
+                        }
+                        <a asp-action="Produtos" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Continuar Comprando
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Produtos Relacionados -->
+    <div class="row mt-5">
+        <div class="col-12">
+            <h3 class="fw-bold mb-4">Produtos Relacionados</h3>
+            <div class="row g-3" id="produtosRelacionados">
+                <div class="col-12 text-center">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Carregando...</span>
+                    </div>
+                    <p class="text-muted mt-2">Carregando produtos relacionados...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Carregar produtos da mesma categoria
+        document.addEventListener('DOMContentLoaded', function() {
+            const categoriaId = '@Model.CategoriaId';
+            const produtoId = '@Model.Id';
+            
+            if (categoriaId) {
+                fetch(`/Home/Produtos?categoriaId=${categoriaId}`)
+                    .then(response => response.text())
+                    .then(html => {
+                        const parser = new DOMParser();
+                        const doc = parser.parseFromString(html, 'text/html');
+                        const produtos = doc.querySelectorAll('.col-md-6.col-xl-4');
+                        
+                        const container = document.getElementById('produtosRelacionados');
+                        container.innerHTML = '';
+                        
+                        let count = 0;
+                        
+                        produtos.forEach(produto => {
+                            // Não incluir o produto atual
+                            const link = produto.querySelector('a[href*="Detalhes"]');
+                            if (link && link.href.includes(`/Home/Detalhes/${produtoId}`)) {
+                                return;
+                            }
+                            
+                            if (count < 4) {
+                                container.appendChild(produto.cloneNode(true));
+                                count++;
+                            }
+                        });
+                        
+                        if (count === 0) {
+                            container.innerHTML = `
+                                <div class="col-12 text-center">
+                                    <i class="fas fa-box-open fa-3x text-muted mb-3"></i>
+                                    <p class="text-muted">Nenhum produto relacionado encontrado.</p>
+                                </div>
+                            `;
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Erro ao carregar produtos relacionados:', error);
+                        document.getElementById('produtosRelacionados').innerHTML = `
+                            <div class="col-12 text-center">
+                                <i class="fas fa-exclamation-triangle fa-2x text-muted mb-3"></i>
+                                <p class="text-muted">Erro ao carregar produtos relacionados.</p>
+                            </div>
+                        `;
+                    });
+            }
+        });
+    </script>
+}
