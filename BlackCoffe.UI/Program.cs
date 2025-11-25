@@ -54,6 +54,8 @@ builder.Services.AddAutoMapper(typeof(MappingConfig));
 // Serviços de API
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ICategoriaService, CategoriaService>();
+builder.Services.AddScoped<IProdutoService, ProdutoService>();
+builder.Services.AddScoped<ILojaService, LojaService>();
 
 var app = builder.Build();
 
