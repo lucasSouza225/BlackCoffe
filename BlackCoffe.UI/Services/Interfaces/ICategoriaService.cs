@@ -12,4 +12,3 @@ public interface ICategoriaService
     Task<bool> AtualizarComFotoAsync(int id, CategoriaDto categoria, IFormFile foto);
     Task<bool> ExcluirAsync(int id);
 }
-

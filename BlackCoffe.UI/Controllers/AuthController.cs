@@ -32,7 +32,12 @@ public class AuthController : Controller
         var (success, message) = await _authService.LoginAsync(loginVM);
 
         if (success)
-            return RedirectToAction("Index", "Home");
+        {
+            if (_authService.GetUserPerfil() == "Administrador")
+                return RedirectToAction("Index", "Admin");
+            else
+                return RedirectToAction("Index", "Home");
+        }
 
         ModelState.AddModelError(string.Empty, message);
         return View(loginVM);
@@ -65,5 +70,10 @@ public class AuthController : Controller
     {
         _authService.Logout();
         return RedirectToAction("Index", "Home");
+    }
+
+    public IActionResult AcessoNegado()
+    {
+        return View();
     }
 }

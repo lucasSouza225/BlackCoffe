@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace BlackCoffe.UI.Controllers;
 
+[Authorize(Roles = "Administrador")]
 public class CategoriasController : Controller
 {
     private readonly ICategoriaService _categoriaService;
@@ -64,7 +65,6 @@ public class CategoriasController : Controller
     }
 
     // GET: Categorias/Create
-    [Authorize(Roles = "Administrador")]
     public IActionResult Create()
     {
         return View();
@@ -73,7 +73,6 @@ public class CategoriasController : Controller
     // POST: Categorias/Create
     [HttpPost]
     [ValidateAntiForgeryToken]
-    [Authorize(Roles = "Administrador")]
     public async Task<IActionResult> Create(CategoriaVM categoriaVM)
     {
         if (!ModelState.IsValid)
@@ -81,8 +80,24 @@ public class CategoriasController : Controller
 
         try
         {
-            var categoriaDto = _mapper.Map<CategoriaDto>(categoriaVM);
-            var success = await _categoriaService.CriarAsync(categoriaDto);
+            // Mapeamento manual para evitar problemas com IFormFile
+            var categoriaDto = new CategoriaDto
+            {
+                Nome = categoriaVM.Nome,
+                Cor = categoriaVM.Cor
+                // Foto será tratada separadamente pelo serviço
+            };
+
+            bool success;
+
+            if (categoriaVM.Foto != null && categoriaVM.Foto.Length > 0)
+            {
+                success = await _categoriaService.CriarComFotoAsync(categoriaDto, categoriaVM.Foto);
+            }
+            else
+            {
+                success = await _categoriaService.CriarAsync(categoriaDto);
+            }
 
             if (success)
             {
@@ -102,7 +117,6 @@ public class CategoriasController : Controller
     }
 
     // GET: Categorias/Edit/5
-    [Authorize(Roles = "Administrador")]
     public async Task<IActionResult> Edit(int id)
     {
         try
@@ -128,7 +142,6 @@ public class CategoriasController : Controller
     // POST: Categorias/Edit/5
     [HttpPost]
     [ValidateAntiForgeryToken]
-    [Authorize(Roles = "Administrador")]
     public async Task<IActionResult> Edit(int id, CategoriaVM categoriaVM)
     {
         if (id != categoriaVM.Id)
@@ -142,8 +155,25 @@ public class CategoriasController : Controller
 
         try
         {
-            var categoriaDto = _mapper.Map<CategoriaDto>(categoriaVM);
-            var success = await _categoriaService.AtualizarAsync(id, categoriaDto);
+            // Mapeamento manual
+            var categoriaDto = new CategoriaDto
+            {
+                Id = categoriaVM.Id,
+                Nome = categoriaVM.Nome,
+                Cor = categoriaVM.Cor
+                // Foto será tratada separadamente pelo serviço
+            };
+
+            bool success;
+
+            if (categoriaVM.Foto != null && categoriaVM.Foto.Length > 0)
+            {
+                success = await _categoriaService.AtualizarComFotoAsync(id, categoriaDto, categoriaVM.Foto);
+            }
+            else
+            {
+                success = await _categoriaService.AtualizarAsync(id, categoriaDto);
+            }
 
             if (success)
             {
@@ -163,7 +193,6 @@ public class CategoriasController : Controller
     }
 
     // GET: Categorias/Delete/5
-    [Authorize(Roles = "Administrador")]
     public async Task<IActionResult> Delete(int id)
     {
         try
@@ -189,7 +218,6 @@ public class CategoriasController : Controller
     // POST: Categorias/Delete/5
     [HttpPost, ActionName("Delete")]
     [ValidateAntiForgeryToken]
-    [Authorize(Roles = "Administrador")]
     public async Task<IActionResult> DeleteConfirmed(int id)
     {
         try
