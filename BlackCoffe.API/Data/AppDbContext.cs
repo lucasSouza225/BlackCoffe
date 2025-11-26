@@ -94,14 +94,27 @@ public class AppDbContext : IdentityDbContext<Usuario>
     {
         List<Produto> produtos =
         [
-            // Categoria 1 - Cafés em Grãos
-        new Produto { Id = 1, CategoriaId = 1, Nome = "Café em Grãos Arábica Premium", Descricao = "Grãos 100% arábica torrados artesanalmente, com aroma intenso e notas de chocolate.", Qtde = 50, ValorCusto = 30.00m, ValorVenda = 45.90m, Destaque = true, Foto = "/img/produtos/1.jpg" },
-        new Produto { Id = 2, CategoriaId = 1, Nome = "Café em Grãos Gourmet 500g", Descricao = "Blend equilibrado com torra média e acidez suave.", Qtde = 40, ValorCusto = 25.00m, ValorVenda = 39.50m, Destaque = false, Foto = "/img/produtos/1.jpg" },
-        new Produto { Id = 3, CategoriaId = 1, Nome = "Café em Grãos Espresso Forte", Descricao = "Café encorpado, ideal para máquinas de espresso.", Qtde = 60, ValorCusto = 27.00m, ValorVenda = 42.00m, Destaque = false, Foto = "/img/produtos/1.jpg" },
+            // Categoria 4 - Acessórios
+        new Produto { Id = 1, CategoriaId = 4, Nome = "Café em Grãos Arábica Premium", Descricao = "Grãos 100% arábica torrados artesanalmente, com aroma intenso e notas de chocolate.", Qtde = 50, ValorCusto = 30.00m, ValorVenda = 649.90m, Destaque = true, Foto = "/img/produtos/1.jpg" },
 
-        // Categoria 2 - Cafés Moídos
-        new Produto { Id = 4, CategoriaId = 2, Nome = "Café Moído Tradicional 500g", Descricao = "Café com moagem fina, pronto para coadores e cafeteiras elétricas.", Qtde = 100, ValorCusto = 20.00m, ValorVenda = 29.90m, Destaque = true, Foto = "moido-tradicional.jpg" },
-        new Produto { Id = 5, CategoriaId = 2, Nome = "Café Moído Extra Forte", Descricao = "Blend intenso com sabor marcante e aroma persistente.", Qtde = 80, ValorCusto = 22.00m, ValorVenda = 32.00m, Destaque = false, Foto = "/img/produtos/1.jpg" }  
+        new Produto { Id = 2, CategoriaId = 4, Nome = "Café em Grãos Gourmet 500g", Descricao = "Blend equilibrado com torra média e acidez suave.", Qtde = 40, ValorCusto = 499.00m, ValorVenda = 39.50m, Destaque = false, Foto = "/img/produtos/4.jpg" },
+
+        new Produto { Id = 3, CategoriaId = 4, Nome = "Café em Grãos Espresso Forte", Descricao = "Café encorpado, ideal para máquinas de espresso.", Qtde = 60, ValorCusto = 599.00m, ValorVenda = 42.00m, Destaque = false, Foto = "/img/produtos/3.jpg" },
+
+        // Categoria 1 - Cafés Especiais
+        new Produto { Id = 4, CategoriaId = 1, Nome = "Café Moído Tradicional 500g", Descricao = "Café com moagem fina, pronto para coadores e cafeteiras elétricas.", Qtde = 100, ValorCusto = 20.00m, ValorVenda = 29.90m, Destaque = true, Foto = "/img/produtos/6.jpg" },
+
+        new Produto { Id = 5, CategoriaId = 1, Nome = "Café Moído Extra Forte", Descricao = "Blend intenso com sabor marcante e aroma persistente.", Qtde = 80, ValorCusto = 22.00m, ValorVenda = 32.00m, Destaque = false, Foto = "/img/produtos/5.jpg" },
+
+        new Produto { Id = 6, CategoriaId = 1, Nome = "Café Moído Extra Forte", Descricao = "Blend intenso com sabor marcante e aroma persistente.", Qtde = 80, ValorCusto = 22.00m, ValorVenda = 32.00m, Destaque = false, Foto = "/img/produtos/8.jpg" },
+
+         // Categoria 3 - Grãos
+        new Produto { Id = 7, CategoriaId = 3, Nome = "Café Moído Tradicional 500g", Descricao = "Café com moagem fina, pronto para coadores e cafeteiras elétricas.", Qtde = 100, ValorCusto = 20.00m, ValorVenda = 29.90m, Destaque = true, Foto = "/img/produtos/19.jpg" },
+
+        new Produto { Id = 8, CategoriaId = 3, Nome = "Café Moído Extra Forte", Descricao = "Blend intenso com sabor marcante e aroma persistente.", Qtde = 80, ValorCusto = 22.00m, ValorVenda = 32.00m, Destaque = false, Foto = "/img/produtos/15.jpg" },
+
+        new Produto { Id = 9, CategoriaId = 3, Nome = "Café Moído Extra Forte", Descricao = "Blend intenso com sabor marcante e aroma persistente.", Qtde = 80, ValorCusto = 22.00m, ValorVenda = 32.00m, Destaque = false, Foto = "/img/produtos/13.jpg" }
+
         ];
         builder.Entity<Produto>().HasData(produtos);
     }
