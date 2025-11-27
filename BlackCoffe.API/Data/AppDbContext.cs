@@ -1,4 +1,4 @@
- using BlackCoffe.API.Models;
+using BlackCoffe.API.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
@@ -18,6 +18,7 @@ public class AppDbContext : IdentityDbContext<Usuario>
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
+
         SeedUsuarioPadrao(builder);
         SeedCategoriaPadrao(builder);
         SeedProdutoPadrao(builder);
@@ -28,23 +29,28 @@ public class AppDbContext : IdentityDbContext<Usuario>
         #region Populate Roles - Perfis de Usuário
         List<IdentityRole> roles =
         [
-            new IdentityRole() {
-               Id = "0b44ca04-f6b0-4a8f-a953-1f2330d30894",
-               Name = "Administrador",
-               NormalizedName = "ADMINISTRADOR"
+            new IdentityRole
+            {
+                Id = "0b44ca04-f6b0-4a8f-a953-1f2330d30894",
+                Name = "Administrador",
+                NormalizedName = "ADMINISTRADOR"
             },
-            new IdentityRole() {
-               Id = "ddf093a6-6cb5-4ff7-9a64-83da34aee005",
-               Name = "Cliente",
-               NormalizedName = "CLIENTE"
-            },
+            new IdentityRole
+            {
+                Id = "ddf093a6-6cb5-4ff7-9a64-83da34aee005",
+                Name = "Cliente",
+                NormalizedName = "CLIENTE"
+            }
         ];
+
         builder.Entity<IdentityRole>().HasData(roles);
         #endregion
 
         #region Populate Usuário
-        List<Usuario> usuarios = [
-            new Usuario(){
+        List<Usuario> usuarios =
+        [
+            new Usuario
+            {
                 Id = "ddf093a6-6cb5-4ff7-9a64-83da34aee005",
                 Email = "lucas2469y@gmail.com",
                 NormalizedEmail = "LUCAS2469Y@GMAIL.COM",
@@ -53,26 +59,30 @@ public class AppDbContext : IdentityDbContext<Usuario>
                 LockoutEnabled = true,
                 EmailConfirmed = true,
                 Nome = "Lucas de Souza Santos",
-                DataNascimento = DateTime.Parse("1997-06-27"),
+                DataNascimento = new DateTime(1997, 6, 27),
                 Foto = "/img/usuarios/avatar.jpg"
             }
         ];
+
         foreach (var user in usuarios)
         {
             PasswordHasher<Usuario> pass = new();
             user.PasswordHash = pass.HashPassword(user, "123456");
         }
+
         builder.Entity<Usuario>().HasData(usuarios);
         #endregion
 
         #region Populate UserRole - Usuário com Perfil
         List<IdentityUserRole<string>> userRoles =
         [
-            new IdentityUserRole<string>() {
+            new IdentityUserRole<string>
+            {
                 UserId = usuarios[0].Id,
                 RoleId = roles[0].Id
             }
         ];
+
         builder.Entity<IdentityUserRole<string>>().HasData(userRoles);
         #endregion
     }
@@ -81,12 +91,13 @@ public class AppDbContext : IdentityDbContext<Usuario>
     {
         List<Categoria> categorias =
         [
-         new Categoria { Id = 1, Nome = "Cafés Especiais" },
-            new Categoria { Id = 2, Nome = "Cápsulas" },
-            new Categoria { Id = 3, Nome = "Grãos" },
-            new Categoria { Id = 4, Nome = "Acessórios" },
-            new Categoria { Id = 5, Nome = "Doces e acompanhamentos" }   
+            new Categoria { Id = 1, Nome = "Cafés Especiais", Cor = "#75442A" },
+            new Categoria { Id = 2, Nome = "Cápsulas", Cor = "#C8A37B" },
+            new Categoria { Id = 3, Nome = "Grãos", Cor = "#322015" },
+            new Categoria { Id = 4, Nome = "Acessórios", Cor = "#D4D7D7" },
+            new Categoria { Id = 5, Nome = "Doces e acompanhamentos", Cor = "#A26F43" }
         ];
+
         builder.Entity<Categoria>().HasData(categorias);
     }
 
@@ -95,28 +106,126 @@ public class AppDbContext : IdentityDbContext<Usuario>
         List<Produto> produtos =
         [
             // Categoria 4 - Acessórios
-        new Produto { Id = 1, CategoriaId = 4, Nome = "Cafeteira Premium", Descricao = "Grãos 100% arábica torrados artesanalmente, com aroma intenso e notas de chocolate.", Qtde = 50, ValorCusto = 30.00m, ValorVenda = 649.90m, Destaque = true, Foto = "/img/produtos/1.jpg" },
+            new Produto
+            {
+                Id = 1,
+                CategoriaId = 4,
+                Nome = "Cafeteira Premium",
+                Descricao = "Cafeteira premium com acabamento refinado e alta durabilidade.",
+                Qtde = 50,
+                ValorCusto = 500.00m,
+                ValorVenda = 649.90m,
+                Destaque = true,
+                Foto = "/img/produtos/1.jpg"
+            },
 
-        new Produto { Id = 2, CategoriaId = 4, Nome = "Cafeteira Eletrica", Descricao = "Blend equilibrado com torra média e acidez suave.", Qtde = 40, ValorCusto = 499.00m, ValorVenda = 39.50m, Destaque = false, Foto = "/img/produtos/4.jpg" },
+            new Produto
+            {
+                Id = 2,
+                CategoriaId = 4,
+                Nome = "Cafeteira Elétrica",
+                Descricao = "Cafeteira elétrica moderna, ideal para uso diário.",
+                Qtde = 40,
+                ValorCusto = 399.50m,
+                ValorVenda = 499.00m,
+                Destaque = false,
+                Foto = "/img/produtos/4.jpg"
+            },
 
-        new Produto { Id = 3, CategoriaId = 4, Nome = "Cafeteira  para Espresso", Descricao = "Café encorpado, ideal para máquinas de espresso.", Qtde = 60, ValorCusto = 599.00m, ValorVenda = 42.00m, Destaque = false, Foto = "/img/produtos/3.jpg" },
+            new Produto
+            {
+                Id = 3,
+                CategoriaId = 4,
+                Nome = "Cafeteira para Espresso",
+                Descricao = "Máquina especial para preparo de cafés espresso.",
+                Qtde = 60,
+                ValorCusto = 420.00m,
+                ValorVenda = 599.00m,
+                Destaque = false,
+                Foto = "/img/produtos/3.jpg"
+            },
 
-        // Categoria 1 - Cafés Especiais
-        new Produto { Id = 4, CategoriaId = 1, Nome = "Café Cerrado Mineiro 500g", Descricao = "Café com moagem fina, pronto para coadores e cafeteiras elétricas.", Qtde = 100, ValorCusto = 20.00m, ValorVenda = 29.90m, Destaque = true, Foto = "/img/produtos/6.jpg" },
+            // Categoria 1 - Cafés Especiais
+            new Produto
+            {
+                Id = 4,
+                CategoriaId = 1,
+                Nome = "Café Cerrado Mineiro 500g",
+                Descricao = "Café especial do Cerrado Mineiro, com aroma intenso e notas achocolatadas.",
+                Qtde = 100,
+                ValorCusto = 20.00m,
+                ValorVenda = 29.90m,
+                Destaque = true,
+                Foto = "/img/produtos/6.jpg"
+            },
 
-        new Produto { Id = 5, CategoriaId = 1, Nome = "Café Moído Antigua", Descricao = "Blend intenso com sabor marcante e aroma persistente.", Qtde = 80, ValorCusto = 22.00m, ValorVenda = 32.00m, Destaque = false, Foto = "/img/produtos/5.jpg" },
+            new Produto
+            {
+                Id = 5,
+                CategoriaId = 1,
+                Nome = "Café Moído Antigua",
+                Descricao = "Café moído de sabor marcante, com torra média e aroma persistente.",
+                Qtde = 80,
+                ValorCusto = 22.00m,
+                ValorVenda = 32.00m,
+                Destaque = false,
+                Foto = "/img/produtos/5.jpg"
+            },
 
-        new Produto { Id = 6, CategoriaId = 1, Nome = "Café Moído Kopi Luwak", Descricao = "Blend intenso com sabor marcante e aroma persistente.", Qtde = 80, ValorCusto = 22.00m, ValorVenda = 32.00m, Destaque = false, Foto = "/img/produtos/8.jpg" },
+            new Produto
+            {
+                Id = 6,
+                CategoriaId = 1,
+                Nome = "Café Moído Kopi Luwak",
+                Descricao = "Um dos cafés mais raros do mundo, com sabor extremamente suave e complexo.",
+                Qtde = 80,
+                ValorCusto = 22.00m,
+                ValorVenda = 32.00m,
+                Destaque = false,
+                Foto = "/img/produtos/8.jpg"
+            },
 
-         // Categoria 3 - Grãos
-        new Produto { Id = 7, CategoriaId = 3, Nome = "Café Premiun em grãos", Descricao = "Café com moagem fina, pronto para coadores e cafeteiras elétricas.", Qtde = 100, ValorCusto = 20.00m, ValorVenda = 29.90m, Destaque = true, Foto = "/img/produtos/19.jpg" },
+            // Categoria 3 - Grãos
+            new Produto
+            {
+                Id = 7,
+                CategoriaId = 3,
+                Nome = "Café Premium em Grãos",
+                Descricao = "Grãos selecionados com torra especial e sabor encorpado.",
+                Qtde = 100,
+                ValorCusto = 20.00m,
+                ValorVenda = 29.90m,
+                Destaque = true,
+                Foto = "/img/produtos/19.jpg"
+            },
 
-        new Produto { Id = 8, CategoriaId = 3, Nome = "Café Jameica em grãos ", Descricao = "Blend intenso com sabor marcante e aroma persistente.", Qtde = 80, ValorCusto = 22.00m, ValorVenda = 32.00m, Destaque = false, Foto = "/img/produtos/15.jpg" },
+            new Produto
+            {
+                Id = 8,
+                CategoriaId = 3,
+                Nome = "Café Jamaica Blue Mountain",
+                Descricao = "Café de origem jamaicana, extremamente aromático e equilibrado.",
+                Qtde = 80,
+                ValorCusto = 22.00m,
+                ValorVenda = 32.00m,
+                Destaque = false,
+                Foto = "/img/produtos/15.jpg"
+            },
 
-        new Produto { Id = 9, CategoriaId = 3, Nome = "Café Bourboun em grãos", Descricao = "Blend intenso com sabor marcante e aroma persistente.", Qtde = 80, ValorCusto = 22.00m, ValorVenda = 32.00m, Destaque = false, Foto = "/img/produtos/14.jpg" }
-
+            new Produto
+            {
+                Id = 9,
+                CategoriaId = 3,
+                Nome = "Café Bourbon em Grãos",
+                Descricao = "Café Bourbon de alta qualidade, com sabor doce e baixa acidez.",
+                Qtde = 80,
+                ValorCusto = 22.00m,
+                ValorVenda = 32.00m,
+                Destaque = false,
+                Foto = "/img/produtos/14.jpg"
+            }
         ];
+
         builder.Entity<Produto>().HasData(produtos);
     }
-
 }
