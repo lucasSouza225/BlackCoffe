@@ -79,10 +79,21 @@ main {
 
 /* Hero section com fundo fixo */
 .bg-image {
+    position: relative;
     background-image: url("cafeteria.png");
     background-size: cover;
     background-position: center bottom;
     background-repeat: no-repeat;
+    z-index: 1;
+}
+/* Overlay escuro */
+.bg-image::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.585); /* ajuste aqui para mais ou menos escuridão */
+    z-index: -1;
+    border-radius: 10px;
 }
 
 /* Cards de produtos */

@@ -15,42 +15,43 @@
 <body class="min-vh-100">
     <header class="d-block">
         <nav class="navbar navbar-expand-lg navbar-dark bg-dark border-bottom box-shadow mb-3">
-            <div class="container-fluid">
-                <a class="nav-link active" asp-action="Index" asp-controller="Home">
-                    <img src="/img/logo.png" alt="logo BlackCoffe" class="img-fluid me-4" width="100" height="auto" />
-                </a>
+    <div class="container-fluid">
+        <a class="nav-link active" asp-action="Index" asp-controller="Home">
+            <img src="/img/logo.png" alt="logo BlackCoffe" class="img-fluid me-4" width="100" />
+        </a>
 
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+            data-bs-target="#navbarMain" aria-controls="navbarMain"
+            aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
 
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain"
-                    aria-controls="navbarMain" aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
+        <div class="collapse navbar-collapse" id="navbarMain">
+            <ul class="navbar-nav ms-auto mb-2 mb-lg-0 gap-4">
+                <li class="nav-item">
+                    <a class="nav-link  active" asp-action="Index" asp-controller="Home">
+                        <i class="fas fa-home me-1"></i>Home
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" asp-action="Produtos" asp-controller="Home">
+                        <i class="fas fa-shopping-bag me-1"></i>Produtos
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" asp-action="Privacy" asp-controller="Home">
+                        <i class="fas fa-shield-alt me-1"></i>Privacidade
+                    </a>
+                </li>
+            </ul>
 
-                <div class="collapse navbar-collapse" id="navbarMain">
-                    <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                        <li class="nav-item">
-                            <a class="nav-link active" asp-action="Index" asp-controller="Home">
-                                <i class="fas fa-home me-1"></i>Home
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" asp-action="Produtos" asp-controller="Home">
-                                <i class="fas fa-shopping-bag me-1"></i>Produtos
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" asp-action="Privacy" asp-controller="Home">
-                                <i class="fas fa-shield-alt me-1"></i>Privacidade
-                            </a>
-                        </li>
-                    </ul>
-
-                    <div class="d-flex align-items-center">
-                        <partial name="_LoginPartial" />
-                    </div>
-                </div>
+            <div class="d-flex align-items-center ms-3">
+                <partial name="_LoginPartial" />
             </div>
-        </nav>
+        </div>
+    </div>
+</nav>
+
     </header>
 
     <main role="main" class="container-fluid d-flex flex-column">
