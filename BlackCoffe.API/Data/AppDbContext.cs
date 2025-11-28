@@ -129,7 +129,7 @@ public class AppDbContext : IdentityDbContext<Usuario>
                 Qtde = 80,
                 ValorCusto = 32.00m,
                 ValorVenda = 29.00m,
-                Destaque = false,
+                Destaque = true,
                 Foto = "/img/produtos/especiais/5.jpg"
             },
 
@@ -142,7 +142,7 @@ public class AppDbContext : IdentityDbContext<Usuario>
                 Qtde = 80,
                 ValorCusto = 32.00m,
                 ValorVenda = 22.00m,
-                Destaque = false,
+                Destaque = true,
                 Foto = "/img/produtos/especiais/8.jpg"
             },
 
@@ -156,7 +156,7 @@ public class AppDbContext : IdentityDbContext<Usuario>
                 Qtde = 80,
                 ValorCusto = 30.00m,
                 ValorVenda = 19.90m,
-                Destaque = false,
+                Destaque = true,
                 Foto = "/img/produtos/capsulas/1.jpg"
             },
 
@@ -169,7 +169,7 @@ public class AppDbContext : IdentityDbContext<Usuario>
                 Qtde = 80,
                 ValorCusto = 22.00m,
                 ValorVenda = 19.90m,
-                Destaque = false,
+                Destaque = true,
                 Foto = "/img/produtos/capsulas/2.jpg"
             },           
 
@@ -182,7 +182,7 @@ public class AppDbContext : IdentityDbContext<Usuario>
                     Qtde = 80,
                     ValorCusto = 30.00m,
                     ValorVenda = 23.90m,
-                    Destaque = false,
+                    Destaque = true,
                     Foto = "/img/produtos/capsulas/3.jpg"
                 },
 
@@ -195,7 +195,7 @@ public class AppDbContext : IdentityDbContext<Usuario>
                     Qtde = 80,
                     ValorCusto = 32.00m,
                     ValorVenda = 24.90m,
-                    Destaque = false,
+                    Destaque = true,
                     Foto = "/img/produtos/capsulas/4.jpg"
             },
 
@@ -222,7 +222,7 @@ public class AppDbContext : IdentityDbContext<Usuario>
                 Qtde = 80,
                 ValorCusto = 32.00m,
                 ValorVenda = 25.00m,
-                Destaque = false,
+                Destaque = true,
                 Foto = "/img/produtos/graos/15.jpg"
             },
 
