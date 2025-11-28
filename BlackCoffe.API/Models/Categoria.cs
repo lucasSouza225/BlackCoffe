@@ -18,5 +18,5 @@ public class Categoria
     public string Foto { get; set; }
 
     [StringLength(26)]
-    public string Cor { get; set; } = "rgba(0,0,0,1)";
+    public string Cor { get; set; } = "rgb(43, 43, 43)";
 }

@@ -78,8 +78,11 @@ main {
 /* Estilos globais para a loja */
 
 /* Hero section com fundo fixo */
-.bg-primary {
-    background-color: #0d6efd !important;
+.bg-image {
+    background-image: url("cafeteria.png");
+    background-size: cover;
+    background-position: center bottom;
+    background-repeat: no-repeat;
 }
 
 /* Cards de produtos */

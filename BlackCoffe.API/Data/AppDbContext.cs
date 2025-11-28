@@ -60,7 +60,7 @@ public class AppDbContext : IdentityDbContext<Usuario>
                 EmailConfirmed = true,
                 Nome = "Lucas de Souza Santos",
                 DataNascimento = new DateTime(1997, 6, 27),
-                Foto = "/img/usuarios/avatar.jpg"
+                Foto = "/img/usuarios/avatar.png"
             }
         ];
 
@@ -91,11 +91,11 @@ public class AppDbContext : IdentityDbContext<Usuario>
     {
         List<Categoria> categorias =
         [
-            new Categoria { Id = 1, Nome = "Cafés Especiais", Cor = "#75442A" },
-            new Categoria { Id = 2, Nome = "Cápsulas", Cor = "#C8A37B" },
-            new Categoria { Id = 3, Nome = "Grãos", Cor = "#322015" },
-            new Categoria { Id = 4, Nome = "Acessórios", Cor = "#D4D7D7" },
-            new Categoria { Id = 5, Nome = "Doces e acompanhamentos", Cor = "#A26F43" }
+            new Categoria { Id = 1, Nome = "Cafés Especiais"},
+            new Categoria { Id = 2, Nome = "Cápsulas"},
+            new Categoria { Id = 3, Nome = "Grãos"},
+            new Categoria { Id = 4, Nome = "Acessórios"},
+            new Categoria { Id = 5, Nome = "Doces e acompanhamentos"}
         ];
 
         builder.Entity<Categoria>().HasData(categorias);
@@ -105,125 +105,193 @@ public class AppDbContext : IdentityDbContext<Usuario>
     {
         List<Produto> produtos =
         [
-            // Categoria 4 - Acessórios
+
+            // Categoria 1 - Cafés Especiais
             new Produto
             {
                 Id = 1,
-                CategoriaId = 4,
-                Nome = "Cafeteira Premium",
-                Descricao = "Cafeteira premium com acabamento refinado e alta durabilidade.",
-                Qtde = 50,
-                ValorCusto = 500.00m,
-                ValorVenda = 649.90m,
+                CategoriaId = 1,
+                Nome = "Café Cerrado Mineiro 500g",
+                Descricao = "Café especial do Cerrado Mineiro, com aroma intenso e notas achocolatadas.",
+                Qtde = 100,
+                ValorCusto = 29.90m,
+                ValorVenda = 20.90m,
                 Destaque = true,
-                Foto = "/img/produtos/1.jpg"
+                Foto = "/img/produtos/especiais/6.jpg"
             },
 
             new Produto
             {
                 Id = 2,
-                CategoriaId = 4,
-                Nome = "Cafeteira Elétrica",
-                Descricao = "Cafeteira elétrica moderna, ideal para uso diário.",
-                Qtde = 40,
-                ValorCusto = 399.50m,
-                ValorVenda = 499.00m,
+                CategoriaId = 1,
+                Nome = "Café Moído Antigua",
+                Descricao = "Café moído de sabor marcante, com torra média e aroma persistente.",
+                Qtde = 80,
+                ValorCusto = 32.00m,
+                ValorVenda = 29.00m,
                 Destaque = false,
-                Foto = "/img/produtos/4.jpg"
+                Foto = "/img/produtos/especiais/5.jpg"
             },
 
             new Produto
             {
                 Id = 3,
-                CategoriaId = 4,
-                Nome = "Cafeteira para Espresso",
-                Descricao = "Máquina especial para preparo de cafés espresso.",
-                Qtde = 60,
-                ValorCusto = 420.00m,
-                ValorVenda = 599.00m,
+                CategoriaId = 1,
+                Nome = "Café Moído Kopi Luwak",
+                Descricao = "Um dos cafés mais raros do mundo, com sabor extremamente suave e complexo.",
+                Qtde = 80,
+                ValorCusto = 32.00m,
+                ValorVenda = 22.00m,
                 Destaque = false,
-                Foto = "/img/produtos/3.jpg"
+                Foto = "/img/produtos/especiais/8.jpg"
             },
 
-            // Categoria 1 - Cafés Especiais
+             // Categoria 1 - Cápsulas
             new Produto
             {
                 Id = 4,
-                CategoriaId = 1,
-                Nome = "Café Cerrado Mineiro 500g",
-                Descricao = "Café especial do Cerrado Mineiro, com aroma intenso e notas achocolatadas.",
-                Qtde = 100,
-                ValorCusto = 20.00m,
-                ValorVenda = 29.90m,
-                Destaque = true,
-                Foto = "/img/produtos/6.jpg"
+                CategoriaId = 2,
+                Nome = "Cápsulas de Café Kopi Luwak",
+                Descricao = "Café raro com sabor suave e complexo, notas de caramelo e chocolate, produzido a partir dos grãos ingeridos e excretados pela civeta.",
+                Qtde = 80,
+                ValorCusto = 30.00m,
+                ValorVenda = 19.90m,
+                Destaque = false,
+                Foto = "/img/produtos/capsulas/1.jpg"
             },
 
             new Produto
             {
                 Id = 5,
-                CategoriaId = 1,
-                Nome = "Café Moído Antigua",
-                Descricao = "Café moído de sabor marcante, com torra média e aroma persistente.",
+                CategoriaId = 2,
+                Nome = "Cápsulas de Café Cerrado Mineiro",
+                Descricao = "Café suave e equilibrado, com notas de nozes, chocolate e frutas secas. Cultivado na região do Cerrado Mineiro, é uma opção premium.",
                 Qtde = 80,
                 ValorCusto = 22.00m,
-                ValorVenda = 32.00m,
+                ValorVenda = 19.90m,
                 Destaque = false,
-                Foto = "/img/produtos/5.jpg"
-            },
+                Foto = "/img/produtos/capsulas/2.jpg"
+            },           
 
-            new Produto
-            {
-                Id = 6,
-                CategoriaId = 1,
-                Nome = "Café Moído Kopi Luwak",
-                Descricao = "Um dos cafés mais raros do mundo, com sabor extremamente suave e complexo.",
-                Qtde = 80,
-                ValorCusto = 22.00m,
-                ValorVenda = 32.00m,
-                Destaque = false,
-                Foto = "/img/produtos/8.jpg"
+             new Produto
+                {
+                    Id = 6,
+                    CategoriaId = 2,
+                    Nome = "Cápsulas de Café Especial Mineiro",
+                    Descricao = "Café de sabor rico com notas de frutas vermelhas, cacau e caramelo, cultivado nas montanhas de Minas Gerais.",
+                    Qtde = 80,
+                    ValorCusto = 30.00m,
+                    ValorVenda = 23.90m,
+                    Destaque = false,
+                    Foto = "/img/produtos/capsulas/3.jpg"
+                },
+
+             new Produto
+                {
+                    Id = 7,
+                    CategoriaId = 2,
+                    Nome = "Cápsulas de Café Bourbon",
+                    Descricao = "Café refinado, com notas de frutas tropicais e chocolate amargo. Sabor suave e levemente adocicado.",
+                    Qtde = 80,
+                    ValorCusto = 32.00m,
+                    ValorVenda = 24.90m,
+                    Destaque = false,
+                    Foto = "/img/produtos/capsulas/4.jpg"
             },
 
             // Categoria 3 - Grãos
             new Produto
             {
-                Id = 7,
+                Id = 8,
                 CategoriaId = 3,
                 Nome = "Café Premium em Grãos",
                 Descricao = "Grãos selecionados com torra especial e sabor encorpado.",
                 Qtde = 100,
-                ValorCusto = 20.00m,
+                ValorCusto = 35.00m,
                 ValorVenda = 29.90m,
                 Destaque = true,
-                Foto = "/img/produtos/19.jpg"
-            },
-
-            new Produto
-            {
-                Id = 8,
-                CategoriaId = 3,
-                Nome = "Café Jamaica Blue Mountain",
-                Descricao = "Café de origem jamaicana, extremamente aromático e equilibrado.",
-                Qtde = 80,
-                ValorCusto = 22.00m,
-                ValorVenda = 32.00m,
-                Destaque = false,
-                Foto = "/img/produtos/15.jpg"
+                Foto = "/img/produtos/graos/19.jpg"
             },
 
             new Produto
             {
                 Id = 9,
                 CategoriaId = 3,
+                Nome = "Café Jamaica Blue Mountain",
+                Descricao = "Café de origem jamaicana, extremamente aromático e equilibrado.",
+                Qtde = 80,
+                ValorCusto = 32.00m,
+                ValorVenda = 25.00m,
+                Destaque = false,
+                Foto = "/img/produtos/graos/15.jpg"
+            },
+
+            new Produto
+            {
+                Id = 10,
+                CategoriaId = 3,
                 Nome = "Café Bourbon em Grãos",
                 Descricao = "Café Bourbon de alta qualidade, com sabor doce e baixa acidez.",
                 Qtde = 80,
-                ValorCusto = 22.00m,
-                ValorVenda = 32.00m,
+                ValorCusto = 32.00m,
+                ValorVenda = 22.00m,
                 Destaque = false,
-                Foto = "/img/produtos/14.jpg"
+                Foto = "/img/produtos/graos/14.jpg"
+            },
+
+            // Categoria 4 - Acessórios
+            new Produto
+            {
+                Id = 11,
+                CategoriaId = 4,
+                Nome = "Cafeteira Premium",
+                Descricao = "Cafeteira premium com acabamento refinado e alta durabilidade.",
+                Qtde = 50,
+                ValorCusto = 600.00m,
+                ValorVenda = 549.90m,
+                Destaque = true,
+                Foto = "/img/produtos/acessorios/1.jpg"
+            },
+
+            new Produto
+            {
+                Id = 12,
+                CategoriaId = 4,
+                Nome = "Cafeteira Elétrica",
+                Descricao = "Cafeteira elétrica moderna, ideal para uso diário.",
+                Qtde = 40,
+                ValorCusto = 499.50m,
+                ValorVenda = 399.00m,
+                Destaque = false,
+                Foto = "/img/produtos/acessorios/4.jpg"
+            },
+
+            new Produto
+            {
+                Id = 13,
+                CategoriaId = 4,
+                Nome = "Cafeteira para Expresso",
+                Descricao = "Máquina especial para preparo de cafés espresso.",
+                Qtde = 60,
+                ValorCusto = 520.00m,
+                ValorVenda = 499.00m,
+                Destaque = false,
+                Foto = "/img/produtos/acessorios/3.jpg"
+            },
+
+            new Produto
+            {
+                Id = 14,
+                CategoriaId = 4,
+                Nome = "Mini Cafeteira Espresso",
+                Descricao = "Design moderno e compacto, perfeito para qualquer espaço.",
+                Qtde = 50,
+                ValorCusto = 699.90m,
+                ValorVenda = 549.90m,
+                Destaque = true,
+                Foto = "/img/produtos/acessorios/2.jpg"
             }
+
         ];
 
         builder.Entity<Produto>().HasData(produtos);
